@@ -6,7 +6,7 @@ Right now the Open Data Catalogue of the city of Windsor has information about r
 
 Currently, the city of Windsor's Open Data Catalogue records nearly 5,000 service requests for uncollected recycling in 2022. Assuming an average of 5 LCBO GLASS (10¢), 10 Plastic Bottles (10¢), and 5 Cans (TBS/LCBO) (10¢), a basic profit of $10,000 can be generated.
 
-However, monetary gain is not the sole focus. The Government of Canada emphasizes the importance of recycling:
+However, monetary gain is not the sole focus. The [Government of Canada](https://www.canada.ca/en/environment-climate-change/services/managing-reducing-waste/reduce-plastic-waste.html) emphasizes the importance of recycling:
 ![image](https://github.com/arol9204/Capstone/assets/63767771/a22b73c6-5c42-487c-897d-34e6c3af5232)
 
 This project aims to enhance the circular life of recycled materials in Windsor by engaging St. Clair students in the process. 
