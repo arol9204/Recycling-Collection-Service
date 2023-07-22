@@ -5,7 +5,7 @@ One of the main challenges that we face when we arrive in Canada as internationa
 
 Currently, the city of Windsor's Open Data Catalogue records nearly 5,000 service requests for uncollected recycling in 2022. Assuming an average of [5 glass bottles (10¢), and 15 cans (TBS/LCBO) (10¢)](https://www.thebeerstore.ca/about-us/environmental-leadership/bag-it-back-odrp/), a basic profit of $10,000 can be generated.
 
-However, monetary gain is not the sole focus. The [Government of Canada](https://www.canada.ca/en/environment-climate-change/services/managing-reducing-waste/reduce-plastic-waste.html) emphasizes the importance of recycling:
+However, monetary gain is not the sole focus. The [Government of Canada](https://www.canada.ca/en/environment-climate-change/services/managing-reducing-waste/reduce-plastic-waste.html) emphasizes the importance of recycling: "Canadians throw away over 3 million tonnes of plastic waste every year. Only 9% is recycled while the rest ends up in our landfills"
 ![image](https://github.com/arol9204/Capstone/blob/bc1b9d2b3a971ca94f2298a3ca5419ad949225f5/Assets/Plastic_waste.png)
 
 This project aims to enhance the circular life of recycled materials in Windsor by engaging St. Clair students in the process. 
