@@ -2,7 +2,6 @@
 Capstone Project for Data Analytics for Business at St. Clair College
 
 One of the main challenges that we face when we arrive in Canada as international students is finding a job, so recycling is one of the ways that we can earn some extra money without uploading thousands of  CVs or hacking a personal interview and, the best part is we are doing great work for our new city and our planet. 
-Right now the [Open Data Catalogue](https://opendata.citywindsor.ca/Details/142) of the city of Windsor has information about recycling not collected service request and in total there is almost 5000 service request in the year 2022, now, assuming an average of 5 LCBO GLASS(10¢), 10 Plastic Bottles(10¢) and 5 Can (TBS/LCBO) (10¢) we could have a basic profit of:
 
 Currently, the city of Windsor's Open Data Catalogue records nearly 5,000 service requests for uncollected recycling in 2022. Assuming an average of [5 glass bottles (10¢), and 15 cans (TBS/LCBO) (10¢)](https://www.thebeerstore.ca/about-us/environmental-leadership/bag-it-back-odrp/), a basic profit of $10,000 can be generated.
 
