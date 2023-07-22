@@ -15,4 +15,4 @@ This project aims to enhance the circular life of recycled materials in Windsor 
 
 A key project outcome entails the development of a mobile application that showcases current recycling collection requests in the area. By leveraging machine learning algorithms, we can optimize collection routes to maximize the number of recyclable materials collected, resulting in greater financial returns for participants and considering factors such as waste weight and type (e.g., glass bottles, cans, etc.). 
 
-In essence, this initiative operates similarly to business models such as Uber or Lyft, but instead of connecting riders with drivers, we connect individuals with multiple recycling service requests.
+In essence, this initiative operates similarly to business models such as Uber or Lyft, but instead of connecting riders with drivers, we connect recyclable object collectors with multiple recycling service requests.
