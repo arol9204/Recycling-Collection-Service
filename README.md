@@ -1,4 +1,4 @@
-# Recycling Collecting Service
+# Recycling Collection Service
 Capstone Project for Data Analytics for Business at St. Clair College
 
 One of the main challenges that we face when we arrive in Canada as international students is finding a job, so recycling is one of the ways that we can earn some extra money without uploading thousands of  CVs or hacking a personal interview and, the best part is we are doing great work for our new city and our planet. 
