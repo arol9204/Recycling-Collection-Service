@@ -1,1 +1,1 @@
-For model deployment we are going to use Shiny for Python.
+For model deployment, I'm going to use Shiny for Python.
