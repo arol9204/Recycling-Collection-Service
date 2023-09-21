@@ -17,9 +17,17 @@ model = project.version(1).model
 
 
 from geopy.geocoders import Nominatim
-
 # Create a Nominatim geocoder
 geolocator = Nominatim(user_agent="reverse_geocoding")
+
+
+
+import psycopg2
+
+
+
+
+
 
 
 
@@ -51,15 +59,15 @@ def get_gps_info(image):
         if tags['GPS GPSLongitudeRef'].values == 'W':
             longitude *= -1  # Convert to negative longitude
     else:
-        latitude = 'NA'
-        longitude = 'NA'
+        latitude = None
+        longitude = None
     
     
 
     if 'EXIF DateTimeOriginal' in tags:
         timestamp = tags['EXIF DateTimeOriginal'].values
     else:
-        timestamp = 'NA'
+        timestamp = None
 
     return latitude, longitude, timestamp
 
@@ -210,7 +218,8 @@ def server(input: Inputs, output: Outputs, session: Session):
 
         
             return l_classes
-        
+    
+    # Getting the image path
     @reactive.Calc
     def image_path():
         file_infos: list[FileInfo] = input.file()
@@ -221,6 +230,7 @@ def server(input: Inputs, output: Outputs, session: Session):
         file_info = file_infos[0]["datapath"]
         return file_info
 
+    # Returning the image after drawing the detection boxes
     @reactive.Calc
     def image_anotations():
 
@@ -343,6 +353,7 @@ def server(input: Inputs, output: Outputs, session: Session):
     city_col = reactive.Value([])
     province_col = reactive.Value([])
     country_col = reactive.Value([])
+    path_col = reactive.Value([])
 
     df=reactive.Value(pd.DataFrame({'request_ID': [],
                                     'date': [],
@@ -353,13 +364,16 @@ def server(input: Inputs, output: Outputs, session: Session):
                                    'longitude': [],
                                    'city': [],
                                    'province': [],
-                                   'country': []
+                                   'country': [],
+                                   'path': []
                                    
                                    }))
 
     @reactive.Effect
     @reactive.event(input.submit)
     def add_value_to_list():
+
+        # Here we are adding the new element in each of the lists created
         request_id_col.set(request_id_col() + [len(request_id_col()) + 1])
         date_col.set(date_col() + [get_gps_info(image_path())[2]])
 
@@ -369,11 +383,8 @@ def server(input: Inputs, output: Outputs, session: Session):
 
         lat_col.set(lat_col() + [get_gps_info(image_path())[0]])
         long_col.set(long_col() + [get_gps_info(image_path())[1]])
-
-        #latitude = get_gps_info(image_path())[0]
-        #longitude = get_gps_info(image_path())[1]
-        
-        # Perform reverse geocoding
+     
+        # Perform reverse geocoding to get the name of city, province and country of the lat and long point
         location = geolocator.reverse(f"{get_gps_info(image_path())[0]}, {get_gps_info(image_path())[1]}", exactly_one=True)
         
         # Extract city, province, and country
@@ -388,8 +399,9 @@ def server(input: Inputs, output: Outputs, session: Session):
         city_col.set(city_col() + [city])
         province_col.set(province_col() + [province])
         country_col.set(country_col() + [country])
+        path_col.set(path_col() + [image_path()])
         
-
+        # Here we are updating the data frame with the new lists
         new_data = {'request_ID': request_id_col(),
                     'date': date_col(),
                      'cans': cans_col(), 
@@ -399,12 +411,41 @@ def server(input: Inputs, output: Outputs, session: Session):
                      'longitude': long_col(),
                      'city': city_col(),
                      'province': province_col(),
-                     'country': country_col()
-
-
+                     'country': country_col(),
+                     'path': path_col()
                      }
-        df.set(pd.DataFrame(new_data))
         
+        connection = psycopg2.connect(user="postgres",
+                                  password="sqladmin",
+                                  host="127.0.0.1",
+                                  port="5432",
+                                  database="RECYCLING_DB")
+        # This is neccesary to perform operations inside the database
+        cursor = connection.cursor()
+        # 2. Inserting values by predefining the values in a variable
+        # We used a parameterized query to use Python variables as parameter values at execution time. Using a parameterized query, we can pass python variables as a query parameter using placeholders (%s).
+        insert_query = """ INSERT INTO requests (request_id, n_cans, n_glassbottles, n_plasticbottles, latitude, longitude, city, province, country, image_path, date_image) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) """
+        record_to_insert = (len(request_id_col()), 
+                            np.count_nonzero(np.array(classes()) == 'can'),
+                            np.count_nonzero(np.array(classes()) == 'glass bottle'), 
+                            np.count_nonzero(np.array(classes()) == 'plastic bottle'),
+                            get_gps_info(image_path())[0],
+                            get_gps_info(image_path())[1],
+                            city,
+                            province,
+                            country,
+                            image_path(),
+                            get_gps_info(image_path())[2]
+                            )
+        cursor.execute(insert_query, record_to_insert)
+        connection.commit()
+        print(record_to_insert)
+        #print("1 Record inserted succesfully")
+        cursor.close()
+        connection.close()
+
+        df.set(pd.DataFrame(new_data))
+    
 
   
     @output
@@ -415,6 +456,8 @@ def server(input: Inputs, output: Outputs, session: Session):
 
 app = App(app_ui, server)
 
+
+#print("PostgreSQL connection is closed")
 
 
 # When the image do not have lat and long it throw and error
