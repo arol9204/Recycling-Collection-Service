@@ -21,15 +21,8 @@ from geopy.geocoders import Nominatim
 geolocator = Nominatim(user_agent="reverse_geocoding")
 
 
-
+# postgreSQL connexion
 import psycopg2
-
-
-
-
-
-
-
 
 
 
