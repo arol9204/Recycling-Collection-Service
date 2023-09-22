@@ -58,7 +58,7 @@ print("1 Record inserted succesfully")
 # count = cursor.rowcount
 # print(count, "Record deleted successfully")
     
-    # Fetch result -------------------------------------------------------------
+# Fetch result -------------------------------------------------------------
 cursor.execute("SELECT * FROM mobile")
 record = cursor.fetchall()
 print("Result ", record)

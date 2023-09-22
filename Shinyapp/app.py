@@ -304,20 +304,6 @@ def server(input: Inputs, output: Outputs, session: Session):
             return longitude
     
     # Data Frame requests ---------------------------------------------------------
-    # Here we define all the reactive values
-    request_id_col = reactive.Value([])
-    date_col = reactive.Value([])
-
-    cans_col = reactive.Value([])
-    glass_bottles_col = reactive.Value([])
-    plastic_bottle_col = reactive.Value([])
-    lat_col = reactive.Value([])
-    long_col = reactive.Value([])
-    city_col = reactive.Value([])
-    province_col = reactive.Value([])
-    country_col = reactive.Value([])
-    path_col = reactive.Value([])
-
     df=reactive.Value(pd.DataFrame({'request_ID': [],
                                     'date': [],
                                    'cans': [],
@@ -336,17 +322,6 @@ def server(input: Inputs, output: Outputs, session: Session):
     @reactive.event(input.submit)
     def add_value_to_list():
         if get_gps_info(image_path())[0] != None and get_gps_info(image_path())[1] != None:
-            # Here we are adding the new element in each of the lists created
-            request_id_col.set(request_id_col() + [len(request_id_col()) + 1])
-            date_col.set(date_col() + [get_gps_info(image_path())[2]])
-
-            cans_col.set(cans_col() + [np.count_nonzero(np.array(classes()) == 'can')])
-            glass_bottles_col.set(glass_bottles_col() + [np.count_nonzero(np.array(classes()) == 'glass bottle')])
-            plastic_bottle_col.set(plastic_bottle_col() + [np.count_nonzero(np.array(classes()) == 'plastic bottle')])
-
-            lat_col.set(lat_col() + [get_gps_info(image_path())[0]])
-            long_col.set(long_col() + [get_gps_info(image_path())[1]])
-
             # Perform reverse geocoding to get the name of city, province and country of the lat and long point
             location = geolocator.reverse(f"{get_gps_info(image_path())[0]}, {get_gps_info(image_path())[1]}", exactly_one=True)
             
@@ -359,25 +334,7 @@ def server(input: Inputs, output: Outputs, session: Session):
             else:
                 city = province = country = 'Unknown'
             
-            city_col.set(city_col() + [city])
-            province_col.set(province_col() + [province])
-            country_col.set(country_col() + [country])
-            path_col.set(path_col() + [image_path()])
-            
-            # Here we are updating the data frame with the new lists
-            new_data = {'request_ID': request_id_col(),
-                        'date': date_col(),
-                        'cans': cans_col(), 
-                        'glass_bottles': glass_bottles_col(),
-                        'plastic_bottles': plastic_bottle_col(),
-                        'latitude': lat_col(),
-                        'longitude': long_col(),
-                        'city': city_col(),
-                        'province': province_col(),
-                        'country': country_col(),
-                        'path': path_col()
-                        }
-            
+            # PostgreSQL connexion
             connection = psycopg2.connect(user="postgres",
                                     password="sqladmin",
                                     host="127.0.0.1",
@@ -385,10 +342,17 @@ def server(input: Inputs, output: Outputs, session: Session):
                                     database="RECYCLING_DB")
             # This is neccesary to perform operations inside the database
             cursor = connection.cursor()
+            # Selecting all the information from the request table
+            cursor.execute("SELECT * FROM requests")
+            record = cursor.fetchall()
+            df.set(pd.DataFrame(record))
+            request_id = df().shape[0] + 1
+
+
             # 2. Inserting values by predefining the values in a variable
             # We used a parameterized query to use Python variables as parameter values at execution time. Using a parameterized query, we can pass python variables as a query parameter using placeholders (%s).
             insert_query = """ INSERT INTO requests (request_id, n_cans, n_glassbottles, n_plasticbottles, latitude, longitude, city, province, country, image_path, date_image) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) """
-            record_to_insert = (len(request_id_col()), 
+            record_to_insert = (request_id, 
                                 np.count_nonzero(np.array(classes()) == 'can'),
                                 np.count_nonzero(np.array(classes()) == 'glass bottle'), 
                                 np.count_nonzero(np.array(classes()) == 'plastic bottle'),
@@ -402,12 +366,20 @@ def server(input: Inputs, output: Outputs, session: Session):
                                 )
             cursor.execute(insert_query, record_to_insert)
             connection.commit()
+
+            # Selecting all the information from the request table
+            cursor.execute("SELECT * FROM requests")
+            record = cursor.fetchall()
+            df.set(pd.DataFrame(record, columns=["request_id", "n_cans", "n_glassbottles", "n_plasticbottles", "latitude", "longitude", "city", "province", "country", "image_path", "date_image"]))
+
+
+
             #print(record_to_insert) # here we can check if we are getting the information
             #print("1 Record inserted succesfully")
             cursor.close()
             connection.close()
 
-            df.set(pd.DataFrame(new_data))
+            #df.set(pd.DataFrame(new_data))
         
         else:
             ui.notification_show("Sorry but as the image does not contain the localization information it can not be submitted as a request for collection")
@@ -460,6 +432,7 @@ app = App(app_ui, server)
 #print("PostgreSQL connection is closed")
 
 
-# When the image do not have lat and long it throw and error
+# When the image do not have lat and long it throw and error (DONE)
+    # But now the map needs to be reactive, so if there is not lat nor long in the last image, it should still show the previous submissions
 # When an object wasn't detected it is necesary to pop up a message saying that it happened and allow the user to select if it was an error or not, also i case that it was true that there is not a recycling object do not sumbit a request
 # Make the map reactive, update it only if a new request with lat and long is submitted
