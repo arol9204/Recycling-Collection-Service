@@ -7,6 +7,8 @@ from shiny.types import FileInfo, ImgData, SilentException
 #import requests
 import exifread # to extract image metadata
 
+from asyncio import sleep
+
 import cv2
 
 # importing the model from Robolow
@@ -55,8 +57,6 @@ def get_gps_info(image):
         latitude = None
         longitude = None
     
-    
-
     if 'EXIF DateTimeOriginal' in tags:
         timestamp = tags['EXIF DateTimeOriginal'].values
     else:
@@ -303,36 +303,6 @@ def server(input: Inputs, output: Outputs, session: Session):
             longitude = get_gps_info(image_path())[1]
             return longitude
     
-    # Map Tab ---------------------------------------------------------------------
-    @output 
-    @render_widget
-    def map():
-        # Now that we have the image information we can plot the map with the markers
-        basemap = basemaps[input.basemap()]
-        m = L.Map(basemap=basemap, center=[get_gps_info(image_path())[0], get_gps_info(image_path())[1]], zoom=15)
-
-        # Here is the lat and lon of the image that will be upload
-        marker = L.Marker(location=[get_gps_info(image_path())[0], get_gps_info(image_path())[1]], draggable=True)
-
-        # Beer stores markers
-        icon = Icon(icon_url='https://leafletjs.com/examples/custom-icons/leaf-green.png', icon_size=[20, 50], icon_anchor=[22,94])
-        beer_store_mark1 = L.Marker(location=[42.31263551985872, -83.03326561020128], icon=icon, rotation_angle=0, rotation_origin='22px 94px', draggable=False)
-        beer_store_mark2 = L.Marker(location=[42.30366417918876, -83.05465990194318], icon=icon, rotation_angle=0, rotation_origin='22px 94px', draggable=False)
-
-
-        # Adding the last request    
-        m.add_layer(marker)
-
-        # Adding all previous requests:
-        # Create markers from the DataFrame
-        for index, row in df().iloc[:-1].iterrows():
-            circle_marker = L.CircleMarker(location=(row['latitude'], row['longitude']), radius=5, color="blue", fill_color="blue")
-            m.add_layer(circle_marker)
-
-        m.add_layer(beer_store_mark1)
-        m.add_layer(beer_store_mark2)
-        return m
-    
     # Data Frame requests ---------------------------------------------------------
     # Here we define all the reactive values
     request_id_col = reactive.Value([])
@@ -365,80 +335,117 @@ def server(input: Inputs, output: Outputs, session: Session):
     @reactive.Effect
     @reactive.event(input.submit)
     def add_value_to_list():
+        if get_gps_info(image_path())[0] != None and get_gps_info(image_path())[1] != None:
+            # Here we are adding the new element in each of the lists created
+            request_id_col.set(request_id_col() + [len(request_id_col()) + 1])
+            date_col.set(date_col() + [get_gps_info(image_path())[2]])
 
-        # Here we are adding the new element in each of the lists created
-        request_id_col.set(request_id_col() + [len(request_id_col()) + 1])
-        date_col.set(date_col() + [get_gps_info(image_path())[2]])
+            cans_col.set(cans_col() + [np.count_nonzero(np.array(classes()) == 'can')])
+            glass_bottles_col.set(glass_bottles_col() + [np.count_nonzero(np.array(classes()) == 'glass bottle')])
+            plastic_bottle_col.set(plastic_bottle_col() + [np.count_nonzero(np.array(classes()) == 'plastic bottle')])
 
-        cans_col.set(cans_col() + [np.count_nonzero(np.array(classes()) == 'can')])
-        glass_bottles_col.set(glass_bottles_col() + [np.count_nonzero(np.array(classes()) == 'glass bottle')])
-        plastic_bottle_col.set(plastic_bottle_col() + [np.count_nonzero(np.array(classes()) == 'plastic bottle')])
+            lat_col.set(lat_col() + [get_gps_info(image_path())[0]])
+            long_col.set(long_col() + [get_gps_info(image_path())[1]])
 
-        lat_col.set(lat_col() + [get_gps_info(image_path())[0]])
-        long_col.set(long_col() + [get_gps_info(image_path())[1]])
-     
-        # Perform reverse geocoding to get the name of city, province and country of the lat and long point
-        location = geolocator.reverse(f"{get_gps_info(image_path())[0]}, {get_gps_info(image_path())[1]}", exactly_one=True)
+            # Perform reverse geocoding to get the name of city, province and country of the lat and long point
+            location = geolocator.reverse(f"{get_gps_info(image_path())[0]}, {get_gps_info(image_path())[1]}", exactly_one=True)
+            
+            # Extract city, province, and country
+            if location:
+                address = location.raw['address']
+                city = address.get('city', '')
+                province = address.get('state', '')
+                country = address.get('country', '')
+            else:
+                city = province = country = 'Unknown'
+            
+            city_col.set(city_col() + [city])
+            province_col.set(province_col() + [province])
+            country_col.set(country_col() + [country])
+            path_col.set(path_col() + [image_path()])
+            
+            # Here we are updating the data frame with the new lists
+            new_data = {'request_ID': request_id_col(),
+                        'date': date_col(),
+                        'cans': cans_col(), 
+                        'glass_bottles': glass_bottles_col(),
+                        'plastic_bottles': plastic_bottle_col(),
+                        'latitude': lat_col(),
+                        'longitude': long_col(),
+                        'city': city_col(),
+                        'province': province_col(),
+                        'country': country_col(),
+                        'path': path_col()
+                        }
+            
+            connection = psycopg2.connect(user="postgres",
+                                    password="sqladmin",
+                                    host="127.0.0.1",
+                                    port="5432",
+                                    database="RECYCLING_DB")
+            # This is neccesary to perform operations inside the database
+            cursor = connection.cursor()
+            # 2. Inserting values by predefining the values in a variable
+            # We used a parameterized query to use Python variables as parameter values at execution time. Using a parameterized query, we can pass python variables as a query parameter using placeholders (%s).
+            insert_query = """ INSERT INTO requests (request_id, n_cans, n_glassbottles, n_plasticbottles, latitude, longitude, city, province, country, image_path, date_image) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) """
+            record_to_insert = (len(request_id_col()), 
+                                np.count_nonzero(np.array(classes()) == 'can'),
+                                np.count_nonzero(np.array(classes()) == 'glass bottle'), 
+                                np.count_nonzero(np.array(classes()) == 'plastic bottle'),
+                                get_gps_info(image_path())[0],
+                                get_gps_info(image_path())[1],
+                                city,
+                                province,
+                                country,
+                                image_path(),
+                                get_gps_info(image_path())[2]
+                                )
+            cursor.execute(insert_query, record_to_insert)
+            connection.commit()
+            #print(record_to_insert) # here we can check if we are getting the information
+            #print("1 Record inserted succesfully")
+            cursor.close()
+            connection.close()
+
+            df.set(pd.DataFrame(new_data))
         
-        # Extract city, province, and country
-        if location:
-            address = location.raw['address']
-            city = address.get('city', '')
-            province = address.get('state', '')
-            country = address.get('country', '')
         else:
-            city = province = country = 'Unknown'
+            ui.notification_show("Sorry but as the image does not contain the localization information it can not be submitted as a request for collection")
+            #await sleep(1)
+            ui.notification_show("Warning message", type="warning")
         
-        city_col.set(city_col() + [city])
-        province_col.set(province_col() + [province])
-        country_col.set(country_col() + [country])
-        path_col.set(path_col() + [image_path()])
+    # Map Tab ---------------------------------------------------------------------
+    @output 
+    @render_widget
+    def map():
+        # Now that we have the image information we can plot the map with the markers
+        basemap = basemaps[input.basemap()]
         
-        # Here we are updating the data frame with the new lists
-        new_data = {'request_ID': request_id_col(),
-                    'date': date_col(),
-                     'cans': cans_col(), 
-                     'glass_bottles': glass_bottles_col(),
-                     'plastic_bottles': plastic_bottle_col(),
-                     'latitude': lat_col(),
-                     'longitude': long_col(),
-                     'city': city_col(),
-                     'province': province_col(),
-                     'country': country_col(),
-                     'path': path_col()
-                     }
-        
-        connection = psycopg2.connect(user="postgres",
-                                  password="sqladmin",
-                                  host="127.0.0.1",
-                                  port="5432",
-                                  database="RECYCLING_DB")
-        # This is neccesary to perform operations inside the database
-        cursor = connection.cursor()
-        # 2. Inserting values by predefining the values in a variable
-        # We used a parameterized query to use Python variables as parameter values at execution time. Using a parameterized query, we can pass python variables as a query parameter using placeholders (%s).
-        insert_query = """ INSERT INTO requests (request_id, n_cans, n_glassbottles, n_plasticbottles, latitude, longitude, city, province, country, image_path, date_image) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) """
-        record_to_insert = (len(request_id_col()), 
-                            np.count_nonzero(np.array(classes()) == 'can'),
-                            np.count_nonzero(np.array(classes()) == 'glass bottle'), 
-                            np.count_nonzero(np.array(classes()) == 'plastic bottle'),
-                            get_gps_info(image_path())[0],
-                            get_gps_info(image_path())[1],
-                            city,
-                            province,
-                            country,
-                            image_path(),
-                            get_gps_info(image_path())[2]
-                            )
-        cursor.execute(insert_query, record_to_insert)
-        connection.commit()
-        print(record_to_insert)
-        #print("1 Record inserted succesfully")
-        cursor.close()
-        connection.close()
+        # If there are lat and long info in the last request open the map centered at the last request
+        if get_gps_info(image_path())[0] != None and get_gps_info(image_path())[1] != None:
+            m = L.Map(basemap=basemap, center=[get_gps_info(image_path())[0], get_gps_info(image_path())[1]], zoom=15)
+            # Here is the lat and lon of the image that will be upload
+            marker = L.Marker(location=[get_gps_info(image_path())[0], get_gps_info(image_path())[1]], draggable=True)
+            # Adding the last request    
+            m.add_layer(marker)
+        # If there is not information center the map at the ip addres of the device (it needs more thinking)
+        else:
+            m = L.Map(basemap=basemap, center=[42.3, -83.1], zoom=12)
 
-        df.set(pd.DataFrame(new_data))
-    
+        # Beer stores markers
+        icon = Icon(icon_url='https://leafletjs.com/examples/custom-icons/leaf-green.png', icon_size=[20, 50], icon_anchor=[22,94])
+        beer_store_mark1 = L.Marker(location=[42.31263551985872, -83.03326561020128], icon=icon, rotation_angle=0, rotation_origin='22px 94px', draggable=False)
+        beer_store_mark2 = L.Marker(location=[42.30366417918876, -83.05465990194318], icon=icon, rotation_angle=0, rotation_origin='22px 94px', draggable=False)
+
+        # Adding all previous requests:
+        # Create markers from the DataFrame
+        for index, row in df().iloc[:-1].iterrows():
+            circle_marker = L.CircleMarker(location=(row['latitude'], row['longitude']), radius=5, color="blue", fill_color="blue", )
+            m.add_layer(circle_marker)
+
+        m.add_layer(beer_store_mark1)
+        m.add_layer(beer_store_mark2)
+        return m
 
   
     @output
@@ -455,3 +462,4 @@ app = App(app_ui, server)
 
 # When the image do not have lat and long it throw and error
 # When an object wasn't detected it is necesary to pop up a message saying that it happened and allow the user to select if it was an error or not, also i case that it was true that there is not a recycling object do not sumbit a request
+# Make the map reactive, update it only if a new request with lat and long is submitted

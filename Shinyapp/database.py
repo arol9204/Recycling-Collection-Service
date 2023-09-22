@@ -51,12 +51,12 @@ print("1 Record inserted succesfully")
     # count = cursor.rowcount
     # print(count, "Record updated succesfully")
 
-    # # Executing a SQL query to delete rows from a table -----------------------------------------------------------
-    # delete_query = """ Delete from mobile where id = 1"""
-    # cursor.execute(delete_query)
-    # connection.commit()
-    # count = cursor.rowcount
-    # print(count, "Record deleted successfully")
+# # Executing a SQL query to delete rows from a table -----------------------------------------------------------
+# delete_query = """ Delete from mobile where id = 1"""
+# cursor.execute(delete_query)
+# connection.commit()
+# count = cursor.rowcount
+# print(count, "Record deleted successfully")
     
     # Fetch result -------------------------------------------------------------
 cursor.execute("SELECT * FROM mobile")
