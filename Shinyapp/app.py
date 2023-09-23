@@ -169,7 +169,15 @@ app_ui = ui.page_navbar(
 ###############################################
 # ------------     SERVER ------------------- #
 ###############################################
+ # PostgreSQL connexion
+connection = psycopg2.connect(user="postgres",
+                              password="sqladmin",
+                              host="127.0.0.1",
+                              port="5432",
+                              database="RECYCLING_DB")
 
+# This is neccesary to perform operations inside the database
+cursor = connection.cursor()
 
 def server(input: Inputs, output: Outputs, session: Session):
     @output
@@ -194,7 +202,7 @@ def server(input: Inputs, output: Outputs, session: Session):
 
         input.detect()
         with reactive.isolate():
-            predictions = model.predict(path, confidence=40, overlap=50)
+            predictions = model.predict(path, confidence=40, overlap=30)
                  
             return predictions
         
@@ -315,8 +323,12 @@ def server(input: Inputs, output: Outputs, session: Session):
                                    'province': [],
                                    'country': [],
                                    'path': []
-                                   
                                    }))
+    # Selecting all the information from the request table
+    cursor.execute("SELECT * FROM requests")
+    record = cursor.fetchall()
+    df.set(pd.DataFrame(record, columns=["request_id", "n_cans", "n_glassbottles", "n_plasticbottles", "latitude", "longitude", "city", "province", "country", "image_path", "date_image"]))
+
 
     @reactive.Effect
     @reactive.event(input.submit)
@@ -334,14 +346,8 @@ def server(input: Inputs, output: Outputs, session: Session):
             else:
                 city = province = country = 'Unknown'
             
-            # PostgreSQL connexion
-            connection = psycopg2.connect(user="postgres",
-                                    password="sqladmin",
-                                    host="127.0.0.1",
-                                    port="5432",
-                                    database="RECYCLING_DB")
-            # This is neccesary to perform operations inside the database
-            cursor = connection.cursor()
+           
+            
             # Selecting all the information from the request table
             cursor.execute("SELECT * FROM requests")
             record = cursor.fetchall()
@@ -402,17 +408,22 @@ def server(input: Inputs, output: Outputs, session: Session):
             m.add_layer(marker)
         # If there is not information center the map at the ip addres of the device (it needs more thinking)
         else:
-            m = L.Map(basemap=basemap, center=[42.3, -83.1], zoom=12)
+            m = L.Map(basemap=basemap)
 
         # Beer stores markers
-        icon = Icon(icon_url='https://leafletjs.com/examples/custom-icons/leaf-green.png', icon_size=[20, 50], icon_anchor=[22,94])
-        beer_store_mark1 = L.Marker(location=[42.31263551985872, -83.03326561020128], icon=icon, rotation_angle=0, rotation_origin='22px 94px', draggable=False)
-        beer_store_mark2 = L.Marker(location=[42.30366417918876, -83.05465990194318], icon=icon, rotation_angle=0, rotation_origin='22px 94px', draggable=False)
+        icon = Icon(icon_url='https://leafletjs.com/examples/custom-icons/leaf-green.png', icon_size=[38, 95], icon_anchor=[22,94])
+        beer_store_mark1 = L.Marker(location=[42.31263551985872, -83.03326561020128], icon=icon, draggable=False)
+        beer_store_mark2 = L.Marker(location=[42.30366417918876, -83.05465990194318], icon=icon, draggable=False)
 
         # Adding all previous requests:
         # Create markers from the DataFrame
-        for index, row in df().iloc[:-1].iterrows():
-            circle_marker = L.CircleMarker(location=(row['latitude'], row['longitude']), radius=5, color="blue", fill_color="blue", )
+        # for index, row in df().iloc[:-1].iterrows():
+        #     circle_marker = L.CircleMarker(location=(row['latitude'], row['longitude']), radius=5, color="blue", fill_color="blue")
+        #     m.add_layer(circle_marker)
+
+        # Create circle markers from the DataFrame
+        for _, row in df().iterrows():
+            circle_marker = L.CircleMarker(location=(row['latitude'], row['longitude']), radius=5, color="blue", fill_color="blue")
             m.add_layer(circle_marker)
 
         m.add_layer(beer_store_mark1)
