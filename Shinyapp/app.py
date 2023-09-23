@@ -15,7 +15,7 @@ import cv2
 from roboflow import Roboflow
 rf = Roboflow(api_key="F7o8gC2NLhuzMSLzk98A")
 project = rf.workspace().project("recycling-objects-4aqr3")
-model = project.version(1).model
+model = project.version(3).model
 
 
 from geopy.geocoders import Nominatim
@@ -194,7 +194,7 @@ def server(input: Inputs, output: Outputs, session: Session):
 
         input.detect()
         with reactive.isolate():
-            predictions = model.predict(path, confidence=40, overlap=30)
+            predictions = model.predict(path, confidence=40, overlap=50)
                  
             return predictions
         
