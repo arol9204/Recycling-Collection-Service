@@ -169,15 +169,6 @@ app_ui = ui.page_navbar(
 ###############################################
 # ------------     SERVER ------------------- #
 ###############################################
- # PostgreSQL connexion
-connection = psycopg2.connect(user="postgres",
-                              password="sqladmin",
-                              host="127.0.0.1",
-                              port="5432",
-                              database="RECYCLING_DB")
-
-# This is neccesary to perform operations inside the database
-cursor = connection.cursor()
 
 def server(input: Inputs, output: Outputs, session: Session):
     @output
@@ -324,15 +315,17 @@ def server(input: Inputs, output: Outputs, session: Session):
                                    'country': [],
                                    'path': []
                                    }))
-    # Selecting all the information from the request table
-    cursor.execute("SELECT * FROM requests")
-    record = cursor.fetchall()
-    df.set(pd.DataFrame(record, columns=["request_id", "n_cans", "n_glassbottles", "n_plasticbottles", "latitude", "longitude", "city", "province", "country", "image_path", "date_image"]))
+    # # Selecting all the information from the request table
+    # cursor.execute("SELECT * FROM requests")
+    # record = cursor.fetchall()
+    # df.set(pd.DataFrame(record, columns=["request_id", "n_cans", "n_glassbottles", "n_plasticbottles", "latitude", "longitude", "city", "province", "country", "image_path", "date_image"]))
 
 
     @reactive.Effect
     @reactive.event(input.submit)
     def add_value_to_list():
+        
+
         if get_gps_info(image_path())[0] != None and get_gps_info(image_path())[1] != None:
             # Perform reverse geocoding to get the name of city, province and country of the lat and long point
             location = geolocator.reverse(f"{get_gps_info(image_path())[0]}, {get_gps_info(image_path())[1]}", exactly_one=True)
@@ -347,7 +340,15 @@ def server(input: Inputs, output: Outputs, session: Session):
                 city = province = country = 'Unknown'
             
            
-            
+            # PostgreSQL connexion
+            connection = psycopg2.connect(user="postgres",
+                              password="sqladmin",
+                              host="127.0.0.1",
+                              port="5432",
+                              database="RECYCLING_DB")
+
+            # This is neccesary to perform operations inside the database
+            cursor = connection.cursor()
             # Selecting all the information from the request table
             cursor.execute("SELECT * FROM requests")
             record = cursor.fetchall()
@@ -396,6 +397,8 @@ def server(input: Inputs, output: Outputs, session: Session):
     @output 
     @render_widget
     def map():
+        coin_icon = Icon(icon_url = 'https://raw.githubusercontent.com/arol9204/arol9204/main/images/1.cent.png', icon_size=[15, 15])
+        leaf_icon = Icon(icon_url='https://leafletjs.com/examples/custom-icons/leaf-green.png', icon_size=[38, 95], icon_anchor=[22,94])
         # Now that we have the image information we can plot the map with the markers
         basemap = basemaps[input.basemap()]
         
@@ -411,23 +414,15 @@ def server(input: Inputs, output: Outputs, session: Session):
             m = L.Map(basemap=basemap)
 
         # Beer stores markers
-        icon = Icon(icon_url='https://leafletjs.com/examples/custom-icons/leaf-green.png', icon_size=[38, 95], icon_anchor=[22,94])
-        beer_store_mark1 = L.Marker(location=[42.31263551985872, -83.03326561020128], icon=icon, draggable=False)
-        beer_store_mark2 = L.Marker(location=[42.30366417918876, -83.05465990194318], icon=icon, draggable=False)
-
-        # Adding all previous requests:
-        # Create markers from the DataFrame
-        # for index, row in df().iloc[:-1].iterrows():
-        #     circle_marker = L.CircleMarker(location=(row['latitude'], row['longitude']), radius=5, color="blue", fill_color="blue")
-        #     m.add_layer(circle_marker)
+        beer_store_mark1 = L.Marker(location=[42.31263551985872, -83.03326561020128], icon=leaf_icon, draggable=False)
+        beer_store_mark2 = L.Marker(location=[42.30366417918876, -83.05465990194318], icon=leaf_icon, draggable=False)
+        m.add_layer(beer_store_mark1)
+        m.add_layer(beer_store_mark2)
 
         # Create circle markers from the DataFrame
         for _, row in df().iterrows():
-            circle_marker = L.CircleMarker(location=(row['latitude'], row['longitude']), radius=5, color="blue", fill_color="blue")
-            m.add_layer(circle_marker)
-
-        m.add_layer(beer_store_mark1)
-        m.add_layer(beer_store_mark2)
+            request_marker = L.Marker(location=(row['latitude'], row['longitude']), icon=coin_icon, draggable=False)
+            m.add_layer(request_marker)
         return m
 
   
