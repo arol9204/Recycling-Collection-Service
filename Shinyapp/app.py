@@ -1,5 +1,7 @@
 import numpy as np
 import pandas as pd
+import plotly.express as px
+
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from shiny import App, Inputs, Outputs, Session, reactive, render, ui
@@ -64,11 +66,13 @@ def get_gps_info(image):
 
     return latitude, longitude, timestamp
 
+
 # Map tab
 from shiny import *
-from shinywidgets import output_widget, render_widget
+from shinywidgets import output_widget, render_widget, register_widget
 import ipyleaflet as L
-from ipyleaflet import Icon
+from ipyleaflet import Icon, MarkerCluster, Heatmap
+from ipywidgets import HTML
 
 
 basemaps = {
@@ -79,9 +83,16 @@ basemaps = {
   "Satellite": L.basemaps.Gaode.Satellite,
 }
 
+choices = {"OS": "OpenStreetMap",
+           "ST": "Stamen.Toner", 
+           "STe": "Stamen.Terrain", 
+           "SW": "Stamen.Watercolor", 
+           "HM": "Heatmap"}
+
 # theme
 import shinyswatch
 
+from pathlib import Path
 
 
 
@@ -99,7 +110,8 @@ app_ui = ui.page_navbar(
     
     # Land tab App information -----------------------------
     ui.nav("App Information", 
-          "This research focuses on developing an image-based classification system for recycling objects, targeting four key items: cardboard, tin, glass, and plastic bottles. Leveraging Convolutional Neural Networks (CNNs), our aim is to enhance waste sorting accuracy and efficiency through automated object classification. Unlike conventional methods, our approach classifies one item at a time, ensuring greater precision while simplifying the process."),
+          "This research focuses on developing an image-based classification system for recycling objects, targeting four key items: cardboard, tin, glass, and plastic bottles. Leveraging Convolutional Neural Networks (CNNs), our aim is to enhance waste sorting accuracy and efficiency through automated object classification. Unlike conventional methods, our approach classifies one item at a time, ensuring greater precision while simplifying the process."
+          ),
     
     # Request submission tab -------------------------------
     ui.nav("Request Submission", 
@@ -114,7 +126,10 @@ app_ui = ui.page_navbar(
                                                         capture="environment",
                                                         ),
                                         ui.output_image("image"),
-                                        ui.input_action_button("detect", "Detect!"),
+                                        ui.div(
+                                            ui.input_action_button("detect", "Detect!"),
+                                            ui.input_action_button("submit", "Submit Request!"),
+                                            )
 
                                         
 
@@ -144,33 +159,58 @@ app_ui = ui.page_navbar(
                                               )
                                     ),
                    ),
-                   ui.input_action_button("submit", "Submit Request!"),
+                  
           ),
+    
+    
 
     # Map for exploring requests ---------------------------
     ui.nav("Map",
-             
-                            ui.input_select(
-                                            "basemap", "Choose a basemap",
-                                            choices=list(basemaps.keys())
-                                            ),
+
+                            # ui.input_select(
+                            #                 "basemap", "Choose a basemap",
+                            #                 choices=list(basemaps.keys())
+                            #                 ),
+                            #ui.input_radio_buttons("type_map", "Type of Map", choices),
                             output_widget("map"),
-                            
-                            ui.output_table("requests"),
+
+                            ui.output_table("requests", placeholder=True),
           ),
+
+
+    # Dashboard -------------------------------------------------
+
+    ui.nav("Requests Dashboard",
+           
+           ui.column(4, "Total Requests"),
+           ui.output_text_verbatim("total_requests", placeholder=True),
+            
+           ui.row(
+                ui.column(4, "Total Cans"),
+                ui.column(4, "Total Glass Bottles"),
+                ui.column(4, "Total Plastic Bottles"),
+                ),
+                                        
+           ui.row(
+                ui.column(4, ui.output_text_verbatim("total_cans", placeholder=True)),
+                ui.column(4, ui.output_text_verbatim("total_galssbottles", placeholder=True)),
+                ui.column(4, ui.output_text_verbatim("total_plasticbottles", placeholder=True)),
+                ),
+
+           output_widget("requests_by_date")
+           
+           ),
     
     title="Recycling Service Request",
 )
 
 
-
-
-
 ###############################################
 # ------------     SERVER ------------------- #
 ###############################################
-
 def server(input: Inputs, output: Outputs, session: Session):
+
+    # Ploting the uploaded image
     @output
     @render.image
     async def image() -> ImgData:
@@ -182,7 +222,7 @@ def server(input: Inputs, output: Outputs, session: Session):
         img: ImgData = {"src": str(file_info["datapath"]), "width": "300px"}
         return img
     
-    
+    # Using the Roboflow model to detect objects in the image and return the prediction
     @reactive.Calc
     def predictions():
         file_infos: list[FileInfo] = input.file()
@@ -197,7 +237,7 @@ def server(input: Inputs, output: Outputs, session: Session):
                  
             return predictions
         
-    # Here we count all the recyling objects in the image
+    # Here we put into a list all the recyling object classes in the image
     @reactive.Calc
     def classes():
 
@@ -222,7 +262,7 @@ def server(input: Inputs, output: Outputs, session: Session):
         file_info = file_infos[0]["datapath"]
         return file_info
 
-    # Returning the image after drawing the detection boxes
+    # Drawing the detection boxes in the image uploaded
     @reactive.Calc
     def image_anotations():
 
@@ -254,7 +294,7 @@ def server(input: Inputs, output: Outputs, session: Session):
         
         return image
 
-    # Here we show the image with the annotations
+    # Plotting the image with the annotations
     @output
     @render.plot()
     def image_p():
@@ -262,7 +302,7 @@ def server(input: Inputs, output: Outputs, session: Session):
         with reactive.isolate():
             return plt.imshow(image_anotations())
 
-    
+    # Getting the number of cans detected
     @output
     @render.text()
     def can():
@@ -270,6 +310,7 @@ def server(input: Inputs, output: Outputs, session: Session):
         with reactive.isolate():
             return np.count_nonzero(np.array(classes()) == 'can')
     
+    # Getting the number of glass bottles detected
     @output
     @render.text()
     def glass_bottle():
@@ -277,6 +318,7 @@ def server(input: Inputs, output: Outputs, session: Session):
         with reactive.isolate():
             return np.count_nonzero(np.array(classes()) == 'glass bottle')
     
+    # Getting the number of plastic bottles detected
     @output
     @render.text()
     def plastic_bottle():
@@ -284,7 +326,7 @@ def server(input: Inputs, output: Outputs, session: Session):
         with reactive.isolate():
             return np.count_nonzero(np.array(classes()) == 'plastic bottle')
     
-
+    # Getting the latitude of place where the image was taken
     @output
     @render.text
     def lat():
@@ -294,6 +336,7 @@ def server(input: Inputs, output: Outputs, session: Session):
         
             return latitude
     
+    # Getting the longitude of place where the image was taken
     @output
     @render.text
     def lon():
@@ -303,8 +346,9 @@ def server(input: Inputs, output: Outputs, session: Session):
             return longitude
     
     # Data Frame requests ---------------------------------------------------------
-    df=reactive.Value(pd.DataFrame({'request_ID': [],
-                                    'date': [],
+
+    # Creating a reactive data frame that will be used to show the table "requests" where we are saving all the information pulled from the image
+    df = reactive.Value(pd.DataFrame({'request_ID': [],
                                    'cans': [],
                                    'glass_bottles': [],
                                    'plastic_bottles': [],
@@ -313,20 +357,31 @@ def server(input: Inputs, output: Outputs, session: Session):
                                    'city': [],
                                    'province': [],
                                    'country': [],
-                                   'path': []
+                                   'path': [],
+                                   'date_image': [],
                                    }))
-    # # Selecting all the information from the request table
-    # cursor.execute("SELECT * FROM requests")
-    # record = cursor.fetchall()
-    # df.set(pd.DataFrame(record, columns=["request_id", "n_cans", "n_glassbottles", "n_plasticbottles", "latitude", "longitude", "city", "province", "country", "image_path", "date_image"]))
+    
+    # PostgreSQL connexion
+    connection = psycopg2.connect(user="postgres",
+                              password="sqladmin",
+                              host="127.0.0.1",
+                              port="5432",
+                              database="RECYCLING_DB")
 
+    # This is neccesary to perform operations inside the database
+    cursor = connection.cursor()
+    # Selecting all the information from the request table
+    cursor.execute("SELECT * FROM requests")
+    record = cursor.fetchall()
+    df.set(pd.DataFrame(record, columns=["request_id", "n_cans", "n_glassbottles", "n_plasticbottles", "latitude", "longitude", "city", "province", "country", "image_path", "date_image"]))
+    cursor.close()
+    connection.close()
 
+    # Here we are inserting all the information from the image into the PostgreSQL table Request (localization, date, predictions), using the button submit to insert the new information detected in the image
     @reactive.Effect
     @reactive.event(input.submit)
     def add_value_to_list():
-        
-
-        if get_gps_info(image_path())[0] != None and get_gps_info(image_path())[1] != None:
+        if get_gps_info(image_path())[0] != None and get_gps_info(image_path())[1] != None and len(classes()) > 0:
             # Perform reverse geocoding to get the name of city, province and country of the lat and long point
             location = geolocator.reverse(f"{get_gps_info(image_path())[0]}, {get_gps_info(image_path())[1]}", exactly_one=True)
             
@@ -349,10 +404,12 @@ def server(input: Inputs, output: Outputs, session: Session):
 
             # This is neccesary to perform operations inside the database
             cursor = connection.cursor()
-            # Selecting all the information from the request table
-            cursor.execute("SELECT * FROM requests")
-            record = cursor.fetchall()
-            df.set(pd.DataFrame(record))
+            
+            
+            # # Selecting all the information from the request table
+            # cursor.execute("SELECT * FROM requests")
+            # record = cursor.fetchall()
+            # df.set(pd.DataFrame(record, columns=["request_id", "n_cans", "n_glassbottles", "n_plasticbottles", "latitude", "longitude", "city", "province", "country", "image_path", "date_image"]))
             request_id = df().shape[0] + 1
 
 
@@ -379,51 +436,65 @@ def server(input: Inputs, output: Outputs, session: Session):
             record = cursor.fetchall()
             df.set(pd.DataFrame(record, columns=["request_id", "n_cans", "n_glassbottles", "n_plasticbottles", "latitude", "longitude", "city", "province", "country", "image_path", "date_image"]))
 
-
-
             #print(record_to_insert) # here we can check if we are getting the information
             #print("1 Record inserted succesfully")
             cursor.close()
             connection.close()
-
-            #df.set(pd.DataFrame(new_data))
         
-        else:
+        # Through an error in case that there is not information about the localization of the image (no lat, no long)    
+        elif get_gps_info(image_path())[0] == None and get_gps_info(image_path())[1] == None:
             ui.notification_show("Sorry but as the image does not contain the localization information it can not be submitted as a request for collection")
+            #await sleep(1)
+            ui.notification_show("Warning message", type="warning")
+        elif len(classes()) == 0:
+            ui.notification_show("Sorry but looks like the model did not detected any of the target classes (cans, glass bottle, plastic bottle)")
             #await sleep(1)
             ui.notification_show("Warning message", type="warning")
         
     # Map Tab ---------------------------------------------------------------------
-    @output 
-    @render_widget
-    def map():
-        coin_icon = Icon(icon_url = 'https://raw.githubusercontent.com/arol9204/arol9204/main/images/1.cent.png', icon_size=[15, 15])
-        leaf_icon = Icon(icon_url='https://leafletjs.com/examples/custom-icons/leaf-green.png', icon_size=[38, 95], icon_anchor=[22,94])
-        # Now that we have the image information we can plot the map with the markers
-        basemap = basemaps[input.basemap()]
-        
-        # If there are lat and long info in the last request open the map centered at the last request
-        if get_gps_info(image_path())[0] != None and get_gps_info(image_path())[1] != None:
-            m = L.Map(basemap=basemap, center=[get_gps_info(image_path())[0], get_gps_info(image_path())[1]], zoom=15)
-            # Here is the lat and lon of the image that will be upload
-            marker = L.Marker(location=[get_gps_info(image_path())[0], get_gps_info(image_path())[1]], draggable=True)
-            # Adding the last request    
-            m.add_layer(marker)
-        # If there is not information center the map at the ip addres of the device (it needs more thinking)
-        else:
-            m = L.Map(basemap=basemap)
+    
+    # Defining the different type of icons
+    coin_icon = Icon(icon_url = 'https://raw.githubusercontent.com/arol9204/arol9204/main/images/1.cent.png', icon_size=[15, 15])
+    leaf_icon = Icon(icon_url='https://leafletjs.com/examples/custom-icons/leaf-green.png', icon_size=[38, 95], icon_anchor=[22,94])
 
+    @reactive.Calc
+    def mapping():
+        map = L.Map(basmap = basemaps["OpenStreetMap"], center=(0, 0), zoom = 2)
+        
         # Beer stores markers
         beer_store_mark1 = L.Marker(location=[42.31263551985872, -83.03326561020128], icon=leaf_icon, draggable=False)
         beer_store_mark2 = L.Marker(location=[42.30366417918876, -83.05465990194318], icon=leaf_icon, draggable=False)
-        m.add_layer(beer_store_mark1)
-        m.add_layer(beer_store_mark2)
+        map.add_layer(beer_store_mark1)
+        map.add_layer(beer_store_mark2)
 
-        # Create circle markers from the DataFrame
+        markers = []
         for _, row in df().iterrows():
+
+            # Getting the latitude and longitude from the image
             request_marker = L.Marker(location=(row['latitude'], row['longitude']), icon=coin_icon, draggable=False)
-            m.add_layer(request_marker)
-        return m
+            markers.append(request_marker)
+            marker_cluster = MarkerCluster(
+                                markers = markers
+                            )
+            map.add_layer(marker_cluster)
+
+        @reactive.Effect()
+        @reactive.event(input.submit)
+        def _():
+            if get_gps_info(image_path())[0] != None and get_gps_info(image_path())[1] != None and len(classes()) > 0:
+                map.center = [get_gps_info(image_path())[0], get_gps_info(image_path())[1]]
+                map.zoom = 15
+                # Here is the lat and lon of the image that will be upload
+                marker = L.Marker(location=[get_gps_info(image_path())[0], get_gps_info(image_path())[1]], draggable=True)
+                # Adding the last request    
+                map.add_layer(marker)
+
+        return map
+        
+    @output 
+    @render_widget
+    def map():
+        return mapping()
 
   
     @output
@@ -431,6 +502,38 @@ def server(input: Inputs, output: Outputs, session: Session):
     def requests():
         #df = df.append(new_request(), ignore_index=True)
         return df()
+    
+    # Dashboard tab -----------------------------------------------------------------------------------
+
+    @reactive.Calc
+    def fig():
+        # Convert the 'date' column to a datetime object
+        df()['date_image'] = pd.to_datetime(df()['date_image'], format='%Y:%m:%d %H:%M:%S')
+
+        # Extract date component
+        df()['date_image'] = df()['date_image'].dt.strftime('%Y-%m-%d')
+
+        # Group by date and count the number of requests for each date
+        df_grouped = df().groupby('date_image').size().reset_index(name='num_requests')
+
+        # Create a Plotly figure
+        fig = px.bar(df_grouped, x='date_image', y='num_requests', labels={'date_image': 'Date', 'num_requests': 'Number of Requests'},
+             title='Recycling Requests by Date')
+
+        # Customize the layout (optional)
+        fig.update_layout(
+            xaxis_title='Date',
+            yaxis_title='Number of Requests',
+            xaxis_tickangle=-45  # Rotate x-axis labels for better readability
+        )
+        fig.layout.height = 400
+        return fig
+
+    @output
+    @render_widget
+    def requests_by_date():
+        return fig()
+
 
 app = App(app_ui, server)
 
