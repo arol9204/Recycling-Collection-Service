@@ -15,8 +15,8 @@ import cv2
 
 # importing the model from Robolow
 from roboflow import Roboflow
-rf = Roboflow(api_key="F7o8gC2NLhuzMSLzk98A")
-project = rf.workspace().project("recycling-objects-4aqr3")
+rf = Roboflow(api_key="---------")
+project = rf.workspace().project("--------")
 model = project.version(3).model
 
 
