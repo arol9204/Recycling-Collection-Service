@@ -72,11 +72,12 @@ from shiny import *
 from shinywidgets import output_widget, render_widget, register_widget
 import ipyleaflet as L
 from ipyleaflet import Icon, MarkerCluster, Heatmap
-from ipywidgets import HTML
+from ipywidgets import HTML, Layout
 
 
 basemaps = {
   "OpenStreetMap": L.basemaps.OpenStreetMap.Mapnik,
+  "CartoDB": L.basemaps.CartoDB.Positron,
   "Stamen.Toner": L.basemaps.Stamen.Toner,
   "Stamen.Terrain": L.basemaps.Stamen.Terrain,
   "Stamen.Watercolor": L.basemaps.Stamen.Watercolor,
@@ -166,15 +167,19 @@ app_ui = ui.page_navbar(
 
     # Map for exploring requests ---------------------------
     ui.nav("Map",
-
+                ui.page_fluid(
+                    ui.row(
                             # ui.input_select(
                             #                 "basemap", "Choose a basemap",
                             #                 choices=list(basemaps.keys())
                             #                 ),
                             #ui.input_radio_buttons("type_map", "Type of Map", choices),
-                            output_widget("map"),
-
+                            output_widget("map", height="850px"),
+                    ),
+                    ui.row(
                             ui.output_table("requests", placeholder=True),
+                    ),
+                ),
           ),
 
 
@@ -197,7 +202,21 @@ app_ui = ui.page_navbar(
                 ui.column(4, ui.output_text_verbatim("total_plasticbottles", placeholder=True)),
                 ),
 
-           output_widget("requests_by_date")
+           output_widget("requests_by_date"),
+
+           ui.row(
+               ui.input_radio_buttons("can_maps", "Cans", choices= ['Heatmap', 'USGS map'], width='800px'),
+               ui.input_radio_buttons("glassbottles_maps", "Glass Bottles", choices= ['Heatmap', 'USGS map'], width='800px'),
+               ui.input_radio_buttons("plasticbottles_maps", "Plastic Bottles", choices= ['Heatmap', 'USGS map'], width='800px'),
+               
+           ),
+           
+
+           ui.row(
+               output_widget("heatmap_cans", width="800px" ),
+               output_widget("heatmap_glassbottles", width="800px"),
+               output_widget("heatmap_plasticbottles", width="800px"),
+           ),
            
            ),
     
@@ -233,7 +252,7 @@ def server(input: Inputs, output: Outputs, session: Session):
 
         input.detect()
         with reactive.isolate():
-            predictions = model.predict(path, confidence=40, overlap=30)
+            predictions = model.predict(path, confidence=50, overlap=50)
                  
             return predictions
         
@@ -459,8 +478,8 @@ def server(input: Inputs, output: Outputs, session: Session):
 
     @reactive.Calc
     def mapping():
-        map = L.Map(basmap = basemaps["OpenStreetMap"], center=(0, 0), zoom = 2)
-        
+        map = L.Map(basmap = L.basemaps.CartoDB.Positron, center=(0, 0), zoom = 2, scroll_wheel_zoom=True, )
+        map.layout.height = "800px"
         # Beer stores markers
         beer_store_mark1 = L.Marker(location=[42.31263551985872, -83.03326561020128], icon=leaf_icon, draggable=False)
         beer_store_mark2 = L.Marker(location=[42.30366417918876, -83.05465990194318], icon=leaf_icon, draggable=False)
@@ -506,7 +525,7 @@ def server(input: Inputs, output: Outputs, session: Session):
     # Dashboard tab -----------------------------------------------------------------------------------
 
     @reactive.Calc
-    def fig():
+    def fig1():
         # Convert the 'date' column to a datetime object
         df()['date_image'] = pd.to_datetime(df()['date_image'], format='%Y:%m:%d %H:%M:%S')
 
@@ -518,7 +537,7 @@ def server(input: Inputs, output: Outputs, session: Session):
 
         # Create a Plotly figure
         fig = px.bar(df_grouped, x='date_image', y='num_requests', labels={'date_image': 'Date', 'num_requests': 'Number of Requests'},
-             title='Recycling Requests by Date')
+             title='Recycling Requests by Date', text_auto=True)
 
         # Customize the layout (optional)
         fig.update_layout(
@@ -526,13 +545,144 @@ def server(input: Inputs, output: Outputs, session: Session):
             yaxis_title='Number of Requests',
             xaxis_tickangle=-45  # Rotate x-axis labels for better readability
         )
+
+        # Customize aspect
+        fig.update_traces(marker_color='rgb(158,225,205)', marker_line_color='rgb(8,107,48)',
+                          marker_line_width=1.5, opacity=0.6)
+
         fig.layout.height = 400
         return fig
+    
+    @reactive.Calc
+    def fig2_1():
+        if input.can_maps() == 'Heatmap':
+            # "open-street-map", "carto-positron", "carto-darkmatter", "stamen-terrain", "stamen-toner" or "stamen-watercolor"
+            fig = px.density_mapbox(df()[df()['n_cans'] > 0], lat='latitude', lon='longitude', z='n_cans', radius=10,
+                            center=dict(lat=42.3126, lon=-83.0332), zoom=10, title="Heatmap of cans",
+                            mapbox_style="carto-darkmatter")
+        elif input.can_maps() == 'USGS map':
+            fig = px.scatter_mapbox(df()[df()['n_cans'] > 0], lat="latitude", lon="longitude",
+                        color_discrete_sequence=["fuchsia"], zoom=3, height=300)
+            fig.update_layout(
+                mapbox_style="white-bg",
+                mapbox_layers=[
+                    {
+                        "below": 'traces',
+                        "sourcetype": "raster",
+                        "sourceattribution": "United States Geological Survey",
+                        "source": [
+                            "https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}"
+                        ]
+                    }
+                ])
+            fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
+        return fig
+    
+    @reactive.Calc
+    def fig2_2():
+        if input.glassbottles_maps() == 'Heatmap':
+            fig = px.density_mapbox(df()[df()['n_glassbottles'] > 0], lat='latitude', lon='longitude', z='n_glassbottles', radius=10,
+                            center=dict(lat=42.3126, lon=-83.0332), zoom=10, title="Heatmap of glass bottles",
+                            mapbox_style="carto-darkmatter")
+        elif input.glassbottles_maps() == 'USGS map':
+            fig = px.scatter_mapbox(df()[df()['n_glassbottles'] > 0], lat="latitude", lon="longitude",
+                        color_discrete_sequence=["fuchsia"], zoom=3, height=300)
+            fig.update_layout(
+                mapbox_style="white-bg",
+                mapbox_layers=[
+                    {
+                        "below": 'traces',
+                        "sourcetype": "raster",
+                        "sourceattribution": "United States Geological Survey",
+                        "source": [
+                            "https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}"
+                        ]
+                    }
+                ])
+            fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
+
+        return fig
+    
+    @reactive.Calc
+    def fig2_3():
+        if input.plasticbottles_maps() == 'Heatmap':
+            fig = px.density_mapbox(df()[df()['n_plasticbottles'] == 1], lat='latitude', lon='longitude', z='n_plasticbottles', radius=10,
+                            center=dict(lat=42.3126, lon=-83.0332), zoom=10, title="Heatmap of plastic bottles",
+                            mapbox_style="carto-darkmatter")
+        elif input.plasticbottles_maps() == 'USGS map':
+            fig = px.scatter_mapbox(df()[df()['n_plasticbottles'] > 0], lat="latitude", lon="longitude",
+                        color_discrete_sequence=["fuchsia"], zoom=3, height=300)
+            fig.update_layout(
+                mapbox_style="white-bg",
+                mapbox_layers=[
+                    {
+                        "below": 'traces',
+                        "sourcetype": "raster",
+                        "sourceattribution": "United States Geological Survey",
+                        "source": [
+                            "https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}"
+                        ]
+                    }
+                ])
+            fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
+        return fig
+    
+    def counting_cans():
+        total = df()['n_cans'].sum()
+        return total
+    
+    def counting_glassbottles():
+        total = df()['n_glassbottles'].sum()
+        return total
+    
+    def counting_plasticbottles():
+        total = df()['n_plasticbottles'].sum()
+        return total
+    
+    def counting_requests():
+        total = df().shape[0]
+        return total
+    
+
+    @output
+    @render.text()
+    def total_requests():
+        return counting_requests()
+    
+    @output
+    @render.text()
+    def total_cans():
+        return counting_cans()
+    
+    @output
+    @render.text()
+    def total_glassbottles():
+        return counting_glassbottles()
+
+    @output
+    @render.text()
+    def total_plasticbottles():
+        return counting_plasticbottles()
+
 
     @output
     @render_widget
     def requests_by_date():
-        return fig()
+        return fig1()
+    
+    @output
+    @render_widget
+    def heatmap_cans():
+        return fig2_1()
+    @output
+    @render_widget
+    def heatmap_glassbottles():
+        return fig2_2()
+    
+    @output
+    @render_widget
+    def heatmap_plasticbottles():
+        return fig2_3()
 
 
 app = App(app_ui, server)
