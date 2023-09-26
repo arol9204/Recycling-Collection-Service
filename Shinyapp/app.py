@@ -69,10 +69,10 @@ def get_gps_info(image):
 
 # Map tab
 from shiny import *
-from shinywidgets import output_widget, render_widget, register_widget
+from shinywidgets import output_widget, render_widget
 import ipyleaflet as L
-from ipyleaflet import Icon, MarkerCluster, Heatmap
-from ipywidgets import HTML, Layout
+from ipyleaflet import Icon, MarkerCluster
+
 
 
 basemaps = {
@@ -327,7 +327,7 @@ def server(input: Inputs, output: Outputs, session: Session):
     def can():
         input.detect()
         with reactive.isolate():
-            return np.count_nonzero(np.array(classes()) == 'can')
+            return np.count_nonzero(np.array(classes()) == 'can') ### when there is not detection it through this warning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
     
     # Getting the number of glass bottles detected
     @output
@@ -335,7 +335,7 @@ def server(input: Inputs, output: Outputs, session: Session):
     def glass_bottle():
         input.detect()
         with reactive.isolate():
-            return np.count_nonzero(np.array(classes()) == 'glass bottle')
+            return np.count_nonzero(np.array(classes()) == 'glass bottle') ### when there is not detection it through this warning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
     
     # Getting the number of plastic bottles detected
     @output
@@ -343,7 +343,7 @@ def server(input: Inputs, output: Outputs, session: Session):
     def plastic_bottle():
         input.detect()
         with reactive.isolate():
-            return np.count_nonzero(np.array(classes()) == 'plastic bottle')
+            return np.count_nonzero(np.array(classes()) == 'plastic bottle') ### when there is not detection it through this warning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
     
     # Getting the latitude of place where the image was taken
     @output
@@ -606,6 +606,7 @@ def server(input: Inputs, output: Outputs, session: Session):
     @reactive.Calc
     def fig2_3():
         if input.plasticbottles_maps() == 'Heatmap':
+            ### df()['n_plasticbottles'] == 1 this condition should be "> 0"
             fig = px.density_mapbox(df()[df()['n_plasticbottles'] == 1], lat='latitude', lon='longitude', z='n_plasticbottles', radius=10,
                             center=dict(lat=42.3126, lon=-83.0332), zoom=10, title="Heatmap of plastic bottles",
                             mapbox_style="carto-darkmatter")
