@@ -16,3 +16,8 @@ This project aims to enhance the circular life of recycled materials in Windsor 
 A key project outcome entails the development of a mobile application that showcases current recycling collection requests in the area. By leveraging machine learning algorithms, we can optimize collection routes to maximize the number of recyclable materials collected, resulting in greater financial returns for participants and considering factors such as waste weight and type (e.g., glass bottles, cans, etc.). 
 
 In essence, this initiative operates similarly to business models such as Uber or Lyft, but instead of connecting riders with drivers, we connect recyclable object collectors with multiple recycling service requests.
+
+App UI
+<img width="1920" alt="1  Request tab" src="https://github.com/arol9204/Recicling-Collection-Service/assets/63767771/9050fe6a-9d87-44a9-8eb5-beab39a558f6">
+<img width="1922" alt="2  Map tab" src="https://github.com/arol9204/Recicling-Collection-Service/assets/63767771/ab539da3-986b-46b7-b93f-dd2c8874155b">
+<img width="1919" alt="3  Dashboard tab" src="https://github.com/arol9204/Recicling-Collection-Service/assets/63767771/31bc8321-44d8-48f8-824d-397abe1a902c">
