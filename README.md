@@ -18,6 +18,13 @@ A key project outcome entails the development of a mobile application that showc
 In essence, this initiative operates similarly to business models such as Uber or Lyft, but instead of connecting riders with drivers, we connect recyclable object collectors with multiple recycling service requests.
 
 App UI
-<img width="1920" alt="1  Request tab" src="https://github.com/arol9204/Recicling-Collection-Service/assets/63767771/9050fe6a-9d87-44a9-8eb5-beab39a558f6">
-<img width="1922" alt="2  Map tab" src="https://github.com/arol9204/Recicling-Collection-Service/assets/63767771/ab539da3-986b-46b7-b93f-dd2c8874155b">
-<img width="1919" alt="3  Dashboard tab" src="https://github.com/arol9204/Recicling-Collection-Service/assets/63767771/31bc8321-44d8-48f8-824d-397abe1a902c">
+
+- Request tab:
+<img width="1919" alt="1  Request tab" src="https://github.com/arol9204/Recicling-Collection-Service/assets/63767771/2787098e-9881-4472-addd-993c5cf9d04c">
+
+- Map:
+<img width="1918" alt="2  Map tab" src="https://github.com/arol9204/Recicling-Collection-Service/assets/63767771/eebdbda8-eaf6-4d72-bd79-c5fc9dcd6a22">
+
+- Dashboard:
+<img width="1918" alt="3  Dashboard tab" src="https://github.com/arol9204/Recicling-Collection-Service/assets/63767771/c7bbc8fd-47a5-47aa-b78a-ab472da44d7c">
+
