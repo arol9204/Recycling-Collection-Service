@@ -15,8 +15,8 @@ import cv2
 
 # importing the model from Robolow
 from roboflow import Roboflow
-rf = Roboflow(api_key="---------")
-project = rf.workspace().project("--------")
+rf = Roboflow(api_key="________")
+project = rf.workspace().project("__________")
 model = project.version(3).model
 
 
@@ -76,8 +76,8 @@ from ipyleaflet import Icon, MarkerCluster
 
 
 basemaps = {
-  "OpenStreetMap": L.basemaps.OpenStreetMap.Mapnik,
   "CartoDB": L.basemaps.CartoDB.Positron,
+  "OpenStreetMap": L.basemaps.OpenStreetMap.Mapnik,
   "Stamen.Toner": L.basemaps.Stamen.Toner,
   "Stamen.Terrain": L.basemaps.Stamen.Terrain,
   "Stamen.Watercolor": L.basemaps.Stamen.Watercolor,
@@ -110,14 +110,21 @@ app_ui = ui.page_navbar(
     shinyswatch.theme.zephyr(),
     
     # Land tab App information -----------------------------
-    ui.nav("App Information", 
-          "This research focuses on developing an image-based classification system for recycling objects, targeting four key items: cardboard, tin, glass, and plastic bottles. Leveraging Convolutional Neural Networks (CNNs), our aim is to enhance waste sorting accuracy and efficiency through automated object classification. Unlike conventional methods, our approach classifies one item at a time, ensuring greater precision while simplifying the process."
+    ui.nav("App Information",
+           {"style": "background-color: rgba(0, 255, 128, 0.1)"},
+           ui.h1("App description"),
+
+           ui.markdown("This research focuses on developing an image-based detection system for recycling objects, targeting for now three key items: cans, glass bottles, and plastic bottles. Leveraging detection models, our aim is to enhance waste sorting accuracy and efficiency through automated object detection."),
+           
+           ui.a({"href": "https://github.com/arol9204/Recicling-Collection-Service", "target": "_blank"}, "Github Repo"),
           ),
     
     # Request submission tab -------------------------------
     ui.nav("Request Submission", 
                    ui.layout_sidebar(
+                       
                        ui.panel_sidebar(
+                           {"style": "background-color: rgba(0, 255, 128, 0.1)"},
                                         ui.input_file(  "file",
                                                         "Please upload your picture here",
                                                         button_label="Open camera",
@@ -136,25 +143,31 @@ app_ui = ui.page_navbar(
 
                                        ),
                        ui.panel_main(
+                          {"style": "background-color: rgba(0, 255, 128, 0.1)"},
+                                        ui.h3("Model detections"),
                                         ui.output_plot("image_p"),
                                         
                                         ui.row(
+                          
                                                 ui.column(4, "# Cans "),
                                                 ui.column(4, "# Glass bottle"),
                                                 ui.column(4, "# Plastic bottle"),
                                               ),
                                         ui.row(
+                          
                                                 ui.column(4, ui.output_text_verbatim("can", placeholder=True)),
                                                 ui.column(4, ui.output_text_verbatim("glass_bottle", placeholder=True)),
                                                 ui.column(4, ui.output_text_verbatim("plastic_bottle", placeholder=True)),
                                               ),
 
                                         ui.row(
+                                            
                                                 ui.column(6, "Latitude"),
                                                 ui.column(6, "Longitude"),
                                               ),
                                         
                                         ui.row(
+                                            
                                                 ui.column(6, ui.output_text_verbatim("lat", placeholder=True)),
                                                 ui.column(6, ui.output_text_verbatim("lon", placeholder=True)),
                                               )
@@ -169,10 +182,10 @@ app_ui = ui.page_navbar(
     ui.nav("Map",
                 ui.page_fluid(
                     ui.row(
-                            # ui.input_select(
-                            #                 "basemap", "Choose a basemap",
-                            #                 choices=list(basemaps.keys())
-                            #                 ),
+                            ui.input_select(
+                                            "basemap", "Choose a basemap",
+                                            choices=list(basemaps.keys())
+                                            ),
                             #ui.input_radio_buttons("type_map", "Type of Map", choices),
                             output_widget("map", height="850px"),
                     ),
@@ -186,7 +199,7 @@ app_ui = ui.page_navbar(
     # Dashboard -------------------------------------------------
 
     ui.nav("Requests Dashboard",
-           
+           {"style": "background-color: rgba(0, 255, 128, 0.1)"},
            ui.column(4, "Total Requests"),
            ui.output_text_verbatim("total_requests", placeholder=True),
             
@@ -478,7 +491,8 @@ def server(input: Inputs, output: Outputs, session: Session):
 
     @reactive.Calc
     def mapping():
-        map = L.Map(basmap = L.basemaps.CartoDB.Positron, center=(0, 0), zoom = 2, scroll_wheel_zoom=True, )
+        basemap = basemaps[input.basemap()]
+        map = L.Map(basemap = basemap, center=(0, 0), zoom = 2, scroll_wheel_zoom=True)
         map.layout.height = "800px"
         # Beer stores markers
         beer_store_mark1 = L.Marker(location=[42.31263551985872, -83.03326561020128], icon=leaf_icon, draggable=False)
@@ -491,11 +505,16 @@ def server(input: Inputs, output: Outputs, session: Session):
 
             # Getting the latitude and longitude from the image
             request_marker = L.Marker(location=(row['latitude'], row['longitude']), icon=coin_icon, draggable=False)
+
+            # Applying cluster
             markers.append(request_marker)
             marker_cluster = MarkerCluster(
                                 markers = markers
                             )
-            map.add_layer(marker_cluster)
+        map.add_layer(marker_cluster)
+
+            # # Without cluster
+            # map.add_layer(request_marker)
 
         @reactive.Effect()
         @reactive.event(input.submit)
@@ -509,7 +528,7 @@ def server(input: Inputs, output: Outputs, session: Session):
                 map.add_layer(marker)
 
         return map
-        
+
     @output 
     @render_widget
     def map():
