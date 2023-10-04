@@ -20,11 +20,14 @@ In essence, this initiative operates similarly to business models such as Uber o
 App UI
 
 - Request tab:
+  In this tab, people can upload a picture taken with some of the recycling objects that the model was trained to detect (tin cans, glass bottles, plastic bottles). The interface will show then the number of elements per class together with the latitude and longitude where the image was taken.
 <img width="1919" alt="1  Request tab" src="https://github.com/arol9204/Recicling-Collection-Service/assets/63767771/2787098e-9881-4472-addd-993c5cf9d04c">
 
 - Map:
+  This tab shows all the requests collected on a map. I have been collecting images in Windsor for around 10 days, and so far I have taken more than 100 pictures with one or more of the targeted objects.
 <img width="1918" alt="2  Map tab" src="https://github.com/arol9204/Recicling-Collection-Service/assets/63767771/eebdbda8-eaf6-4d72-bd79-c5fc9dcd6a22">
 
 - Dashboard:
+  This tab shows a dashboard about the key metrics for this project. It has the total number of requests, the total cans, glass bottles, and plastic bottles detected among all the requests. In addition, there is a bar chart with the number of requests per day since I started collecting images. Lastly, there are three heatmaps that visualize the magnitude of the presence of each of the classes in Windsor areas.
 <img width="1918" alt="3  Dashboard tab" src="https://github.com/arol9204/Recicling-Collection-Service/assets/63767771/c7bbc8fd-47a5-47aa-b78a-ab472da44d7c">
 
