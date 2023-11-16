@@ -24,7 +24,7 @@ App UI
 <img width="1919" alt="1  Request tab" src="https://github.com/arol9204/Recicling-Collection-Service/assets/63767771/2787098e-9881-4472-addd-993c5cf9d04c">
 
 - Map:
-  This tab shows all the requests collected on a map. I have been collecting images in Windsor for around 10 days, and so far I have taken more than 100 pictures with one or more of the targeted objects.
+  This tab shows all the requests collected on a map. I have been collecting images in Windsor for around four months, and so far I have taken more than 200 pictures with one or more of the targeted objects.
 <img width="1918" alt="2  Map tab" src="https://github.com/arol9204/Recicling-Collection-Service/assets/63767771/eebdbda8-eaf6-4d72-bd79-c5fc9dcd6a22">
 
 - Dashboard:
