@@ -18,6 +18,19 @@ A key project outcome entails the development of a mobile application that showc
 In essence, this initiative operates similarly to business models such as Uber or Lyft, but instead of connecting riders with drivers, we connect recyclable object collectors with multiple recycling service requests.
 
 App UI
-<img width="1920" alt="1  Request tab" src="https://github.com/arol9204/Recicling-Collection-Service/assets/63767771/9050fe6a-9d87-44a9-8eb5-beab39a558f6">
-<img width="1922" alt="2  Map tab" src="https://github.com/arol9204/Recicling-Collection-Service/assets/63767771/ab539da3-986b-46b7-b93f-dd2c8874155b">
-<img width="1919" alt="3  Dashboard tab" src="https://github.com/arol9204/Recicling-Collection-Service/assets/63767771/31bc8321-44d8-48f8-824d-397abe1a902c">
+
+- Request tab:
+  In this tab, people can upload a picture taken with some of the recycling objects that the model was trained to detect (tin cans, glass bottles, plastic bottles). The interface will show then the number of elements per class together with the latitude and longitude where the image was taken.
+<img width="1483" alt="1  Request tab" src="https://github.com/arol9204/Recicling-Collection-Service/assets/63767771/97373683-bef9-4156-bd1c-907bef48896f">
+
+
+- Map:
+  This tab shows all the requests collected on a map. I have been collecting images in Windsor for around four months, and so far I have taken more than 200 pictures with one or more of the targeted objects.
+<img width="1473" alt="2  Map tab" src="https://github.com/arol9204/Recicling-Collection-Service/assets/63767771/8568a89a-9612-4d51-ab6d-2336ce5f9488">
+
+
+- Dashboard:
+  This tab shows a dashboard about the key metrics for this project. It has the total number of requests, the total cans, glass bottles, and plastic bottles detected among all the requests. In addition, there is a bar chart with the number of requests per day since I started collecting images. Lastly, there are three heatmaps that visualize the magnitude of the presence of each of the classes in Windsor areas.
+<img width="1457" alt="3  Dashboard tab" src="https://github.com/arol9204/Recicling-Collection-Service/assets/63767771/9becac8c-ba15-4bc8-8727-4ab030cd0c3d">
+
+
