@@ -15,8 +15,8 @@ import cv2
 
 # importing the model from Robolow
 from roboflow import Roboflow
-rf = Roboflow(api_key="________")
-project = rf.workspace().project("__________")
+rf = Roboflow(api_key="F7o8gC2NLhuzMSLzk98A")
+project = rf.workspace().project("recycling-objects-4aqr3")
 model = project.version(3).model
 
 
@@ -27,7 +27,6 @@ geolocator = Nominatim(user_agent="reverse_geocoding")
 
 # postgreSQL connexion
 import psycopg2
-
 
 
 # Defining the function to extract the metadata of the image
@@ -112,15 +111,22 @@ app_ui = ui.page_navbar(
     # Land tab App information -----------------------------
     ui.nav("App Information",
            {"style": "background-color: rgba(0, 255, 128, 0.1)"},
+        ui.page_fixed(
+            
            ui.h1("App description"),
 
            ui.markdown("This research focuses on developing an image-based detection system for recycling objects, targeting for now three key items: cans, glass bottles, and plastic bottles. Leveraging detection models, our aim is to enhance waste sorting accuracy and efficiency through automated object detection."),
            
            ui.a({"href": "https://github.com/arol9204/Recicling-Collection-Service", "target": "_blank"}, "Github Repo"),
+           
+           ),
+
+           
           ),
     
     # Request submission tab -------------------------------
     ui.nav("Request Submission", 
+           ui.page_fixed(
                    ui.layout_sidebar(
                        
                        ui.panel_sidebar(
@@ -173,14 +179,16 @@ app_ui = ui.page_navbar(
                                               )
                                     ),
                    ),
-                  
+             ),
           ),
     
     
 
     # Map for exploring requests ---------------------------
     ui.nav("Map",
-                ui.page_fluid(
+           
+           
+                ui.page_fixed(
                     ui.row(
                             ui.input_select(
                                             "basemap", "Choose a basemap",
@@ -200,6 +208,8 @@ app_ui = ui.page_navbar(
 
     ui.nav("Requests Dashboard",
            {"style": "background-color: rgba(0, 255, 128, 0.1)"},
+
+           ui.page_fixed(
            ui.column(4, "Total Requests"),
            ui.output_text_verbatim("total_requests", placeholder=True),
             
@@ -218,22 +228,25 @@ app_ui = ui.page_navbar(
            output_widget("requests_by_date"),
 
            ui.row(
-               ui.input_radio_buttons("can_maps", "Cans", choices= ['Heatmap', 'USGS map'], width='800px'),
-               ui.input_radio_buttons("glassbottles_maps", "Glass Bottles", choices= ['Heatmap', 'USGS map'], width='800px'),
-               ui.input_radio_buttons("plasticbottles_maps", "Plastic Bottles", choices= ['Heatmap', 'USGS map'], width='800px'),
+               ui.input_radio_buttons("can_maps", "Cans", choices= ['Heatmap', 'USGS map'], width='400px'),
+               ui.input_radio_buttons("glassbottles_maps", "Glass Bottles", choices= ['Heatmap', 'USGS map'], width='400px'),
+               ui.input_radio_buttons("plasticbottles_maps", "Plastic Bottles", choices= ['Heatmap', 'USGS map'], width='400px'),
                
            ),
            
 
            ui.row(
-               output_widget("heatmap_cans", width="800px" ),
-               output_widget("heatmap_glassbottles", width="800px"),
-               output_widget("heatmap_plasticbottles", width="800px"),
+               output_widget("heatmap_cans", width="400px" ),
+               output_widget("heatmap_glassbottles", width="400px"),
+               output_widget("heatmap_plasticbottles", width="400px"),
            ),
            
            ),
+    ),
     
     title="Recycling Service Request",
+
+
 )
 
 
@@ -488,6 +501,12 @@ def server(input: Inputs, output: Outputs, session: Session):
     # Defining the different type of icons
     coin_icon = Icon(icon_url = 'https://raw.githubusercontent.com/arol9204/arol9204/main/images/1.cent.png', icon_size=[15, 15])
     leaf_icon = Icon(icon_url='https://leafletjs.com/examples/custom-icons/leaf-green.png', icon_size=[38, 95], icon_anchor=[22,94])
+    can_icon = Icon(icon_url='https://raw.githubusercontent.com/arol9204/arol9204/main/images/4.1can.png', icon_size=[20, 20])
+    glass_bottle_icon = Icon(icon_url='https://raw.githubusercontent.com/arol9204/arol9204/main/images/4.2red-wine.png', icon_size=[20, 20])
+    plastic_bottle_icon = Icon(icon_url='https://raw.githubusercontent.com/arol9204/arol9204/main/images/4.3water-bottle.png', icon_size=[25, 25])
+    canglassplastic_mix_icon = Icon(icon_url='https://raw.githubusercontent.com/arol9204/arol9204/main/images/4.4canglassplastic_mix.png', icon_size=[20, 20])
+
+    
 
     @reactive.Calc
     def mapping():
@@ -504,7 +523,14 @@ def server(input: Inputs, output: Outputs, session: Session):
         for _, row in df().iterrows():
 
             # Getting the latitude and longitude from the image
-            request_marker = L.Marker(location=(row['latitude'], row['longitude']), icon=coin_icon, draggable=False)
+            if row['n_cans'] > 0 and row['n_glassbottles'] == 0 and row['n_plasticbottles'] == 0:
+                request_marker = L.Marker(location=(row['latitude'], row['longitude']), icon=can_icon, draggable=False)
+            elif row['n_cans'] == 0 and row['n_glassbottles'] > 0 and row['n_plasticbottles'] == 0:
+                request_marker = L.Marker(location=(row['latitude'], row['longitude']), icon=glass_bottle_icon, draggable=False)
+            elif row['n_cans'] == 0 and row['n_glassbottles'] == 0 and row['n_plasticbottles'] > 0:
+                request_marker = L.Marker(location=(row['latitude'], row['longitude']), icon=plastic_bottle_icon, draggable=False)
+            else:
+                request_marker = L.Marker(location=(row['latitude'], row['longitude']), icon=canglassplastic_mix_icon, draggable=False)
 
             # Applying cluster
             markers.append(request_marker)
@@ -534,12 +560,12 @@ def server(input: Inputs, output: Outputs, session: Session):
     def map():
         return mapping()
 
-  
-    @output
-    @render.table
-    def requests():
-        #df = df.append(new_request(), ignore_index=True)
-        return df()
+    # # Here we are showing the database in the UI app
+    # @output
+    # @render.table
+    # def requests():
+    #    #df = df.append(new_request(), ignore_index=True)
+    #    return df()
     
     # Dashboard tab -----------------------------------------------------------------------------------
 
@@ -562,7 +588,10 @@ def server(input: Inputs, output: Outputs, session: Session):
         fig.update_layout(
             xaxis_title='Date',
             yaxis_title='Number of Requests',
-            xaxis_tickangle=-45  # Rotate x-axis labels for better readability
+            xaxis_tickangle=-45,  # Rotate x-axis labels for better readability
+            margin=dict(l=20, r=20, t=40, b=10),
+            plot_bgcolor='rgba(0, 0, 0, 0)',
+            paper_bgcolor="rgba(0, 255, 128, 0.1)",
         )
 
         # Customize aspect
@@ -577,11 +606,16 @@ def server(input: Inputs, output: Outputs, session: Session):
         if input.can_maps() == 'Heatmap':
             # "open-street-map", "carto-positron", "carto-darkmatter", "stamen-terrain", "stamen-toner" or "stamen-watercolor"
             fig = px.density_mapbox(df()[df()['n_cans'] > 0], lat='latitude', lon='longitude', z='n_cans', radius=10,
-                            center=dict(lat=42.3126, lon=-83.0332), zoom=10, title="Heatmap of cans",
+                            center=dict(lat=42.3126, lon=-83.0332), zoom=10, title="",
                             mapbox_style="carto-darkmatter")
+            fig.update(layout_coloraxis_showscale=False)
+            fig.update_layout(
+                            margin=dict(l=20, r=20, t=20, b=20),
+                            paper_bgcolor="rgba(0, 255, 128, 0.1)",
+                             )
         elif input.can_maps() == 'USGS map':
             fig = px.scatter_mapbox(df()[df()['n_cans'] > 0], lat="latitude", lon="longitude",
-                        color_discrete_sequence=["fuchsia"], zoom=3, height=300)
+                        color_discrete_sequence=["fuchsia"], zoom=3, height=400)
             fig.update_layout(
                 mapbox_style="white-bg",
                 mapbox_layers=[
@@ -601,11 +635,16 @@ def server(input: Inputs, output: Outputs, session: Session):
     def fig2_2():
         if input.glassbottles_maps() == 'Heatmap':
             fig = px.density_mapbox(df()[df()['n_glassbottles'] > 0], lat='latitude', lon='longitude', z='n_glassbottles', radius=10,
-                            center=dict(lat=42.3126, lon=-83.0332), zoom=10, title="Heatmap of glass bottles",
+                            center=dict(lat=42.3126, lon=-83.0332), zoom=10, title="",
                             mapbox_style="carto-darkmatter")
+            fig.update(layout_coloraxis_showscale=False)
+            fig.update_layout(
+                            margin=dict(l=20, r=20, t=20, b=20),
+                            paper_bgcolor="rgba(0, 255, 128, 0.1)",
+                             )
         elif input.glassbottles_maps() == 'USGS map':
             fig = px.scatter_mapbox(df()[df()['n_glassbottles'] > 0], lat="latitude", lon="longitude",
-                        color_discrete_sequence=["fuchsia"], zoom=3, height=300)
+                        color_discrete_sequence=["fuchsia"], zoom=3, height=400)
             fig.update_layout(
                 mapbox_style="white-bg",
                 mapbox_layers=[
@@ -627,11 +666,16 @@ def server(input: Inputs, output: Outputs, session: Session):
         if input.plasticbottles_maps() == 'Heatmap':
             ### df()['n_plasticbottles'] == 1 this condition should be "> 0"
             fig = px.density_mapbox(df()[df()['n_plasticbottles'] == 1], lat='latitude', lon='longitude', z='n_plasticbottles', radius=10,
-                            center=dict(lat=42.3126, lon=-83.0332), zoom=10, title="Heatmap of plastic bottles",
+                            center=dict(lat=42.3126, lon=-83.0332), zoom=10, title="", 
                             mapbox_style="carto-darkmatter")
+            fig.update(layout_coloraxis_showscale=False)
+            fig.update_layout(
+                            margin=dict(l=20, r=20, t=20, b=20),
+                            paper_bgcolor="rgba(0, 255, 128, 0.1)",
+                             )
         elif input.plasticbottles_maps() == 'USGS map':
             fig = px.scatter_mapbox(df()[df()['n_plasticbottles'] > 0], lat="latitude", lon="longitude",
-                        color_discrete_sequence=["fuchsia"], zoom=3, height=300)
+                        color_discrete_sequence=["fuchsia"], zoom=3, height=400)
             fig.update_layout(
                 mapbox_style="white-bg",
                 mapbox_layers=[
@@ -705,7 +749,9 @@ def server(input: Inputs, output: Outputs, session: Session):
         return fig2_3()
 
 
+
 app = App(app_ui, server)
+
 
 
 #print("PostgreSQL connection is closed")
