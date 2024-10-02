@@ -42,15 +42,6 @@ yolov5_dir = 'C:/Users/alero/Documents/GitHub/Recicling-Collection-Service/Shiny
 model = torch.hub.load(yolov5_dir, 'custom', path=model_path, source='local', force_reload=True)
 
 
-
-
-# Using my Roboflow API trained model
-# from roboflow import Roboflow
-# rf = Roboflow(api_key="F7o8gC2NLhuzMSLzk98A")
-# project = rf.workspace().project("recycling-objects-4aqr3")
-# model = project.version(3).model
-
-
 from geopy.geocoders import Nominatim
 # Create a Nominatim geocoder
 geolocator = Nominatim(user_agent="reverse_geocoding")
@@ -96,27 +87,6 @@ def get_gps_info(image):
 
     return latitude, longitude, timestamp
 
-
-
-
-
-# basemaps = {
-#   "CartoDB": L.basemaps.CartoDB.Positron,
-#   "OpenStreetMap": L.basemaps.OpenStreetMap.Mapnik,
-#   "Stamen.Toner": L.basemaps.Stamen.Toner,
-#   "Stamen.Terrain": L.basemaps.Stamen.Terrain,
-#   "Stamen.Watercolor": L.basemaps.Stamen.Watercolor,
-#   "Satellite": L.basemaps.Gaode.Satellite,
-# }
-
-# choices = {"OS": "OpenStreetMap",
-#            "ST": "Stamen.Toner", 
-#            "STe": "Stamen.Terrain", 
-#            "SW": "Stamen.Watercolor", 
-#            "HM": "Heatmap"}
-
-
-
 basemaps = {
     "WorldImagery": L.basemaps.Esri.WorldImagery,
     "Mapnik": L.basemaps.OpenStreetMap.Mapnik,
@@ -134,15 +104,10 @@ choices = {"WI": "WorldImagery",
            "HM": "Heatmap"}
 
 
-
-
-
 # theme
 import shinyswatch
 
 from pathlib import Path
-
-
 
 
 ###############################################
@@ -200,21 +165,21 @@ app_ui = ui.page_navbar(
                                                          ui.value_box(
                                                                         "Cans",
                                                                         ui.output_text("can"),
-                                                                        theme="gradient-red-green",
+                                                                        theme="bg-gradient-red-yellow",
                                                                         showcase=icon_svg("jar"), # trash-can-arrow-up, trash, dumpster
                                                                         height="150px",
                                                                     ),
                                                          ui.value_box(
                                                                         "Glass Bottles",
                                                                         ui.output_text("glass_bottle"),
-                                                                        theme="bg-gradient-teal-blue",
+                                                                        theme="bg-gradient-yellow-blue",
                                                                         showcase=icon_svg("wine-bottle"),
                                                                         height="150px",
                                                                     ),
                                                          ui.value_box(
                                                                         "Plastic Bottles",
                                                                         ui.output_text("plastic_bottle"),
-                                                                        theme="gradient-cyan-blue",
+                                                                        theme="bg-gradient-cyan-blue",
                                                                         showcase=icon_svg("bottle-water"),
                                                                         height="150px",
                                                                     ),
@@ -265,10 +230,10 @@ app_ui = ui.page_navbar(
            ui.page_fluid(
                ui.layout_sidebar(
                    ui.sidebar(
-                                ui.input_date_range("daterange", "Date range", start="2023-01-01"), 
+                                ui.input_date_range("daterange", "Date Range:", start="2023-01-01"), 
                                 ui.input_checkbox_group(  
                                                             "checkbox_group",  
-                                                            "Recycling Objects",  
+                                                            "Select Recycling Objects:",  
                                                             {  
                                                                 "c": "Cans",  
                                                                 "gb": "Glass Bottles",  
@@ -277,17 +242,22 @@ app_ui = ui.page_navbar(
                                                             selected=['c', 'gb', 'pb'],
                                                         ),
                                 ui.input_radio_buttons(  
-                                                        "radio",  
-                                                        "Fig 2",  
+                                                        "radio_fig1",  
+                                                        "Fig 1 Plot Type:",  
+                                                        {"1": "Bar plot", "2": "Line plot"},  
+                                                    ),
+                                ui.input_radio_buttons(  
+                                                        "radio_fig2",  
+                                                        "Fig 2 Map Type",  
                                                         {"1": "Heat Map", "2": "High-scale spatial Map"},  
-                                                    )  
+                                                    ),
                                 #ui.input_action_button("action_button", "Apply"),  
                             ),
                             ui.card(
                                     ui.value_box(
                                                     "Total Requests",
                                                     ui.output_text("total_requests"),
-                                                    theme="gradient-cyan-teal",
+                                                    theme="bg-gradient-teal-green",  #gradient-cyan-teal
                                                     showcase=icon_svg("recycle"), # trash-can-arrow-up, trash, dumpster
                                                     height="100px",
                                                     ),
@@ -296,50 +266,36 @@ app_ui = ui.page_navbar(
                                                             ui.value_box(
                                                                         "Total Cans",
                                                                         ui.output_text("total_cans"),
-                                                                        theme="gradient-red-green",
+                                                                        theme="bg-gradient-red-yellow",
                                                                         showcase=icon_svg("jar"), # trash-can-arrow-up, trash, dumpster
                                                                         height="100px",
                                                                     ),
                                                             ui.value_box(
                                                                         "Total Glass Bottles",
                                                                         ui.output_text("total_glassbottles"),
-                                                                        theme="bg-gradient-teal-blue",
+                                                                        theme="bg-gradient-yellow-blue",
                                                                         showcase=icon_svg("wine-bottle"),
                                                                         height="100px",
                                                                     ),
                                                             ui.value_box(
                                                                         "Totla Plastic Bottles",
                                                                         ui.output_text("total_plasticbottles"),
-                                                                        theme="gradient-cyan-blue",
+                                                                        theme="bg-gradient-cyan-blue",
                                                                         showcase=icon_svg("bottle-water"),
                                                                         height="100px",
                                                                     ),
                                                             ),
                                 ),
                             ui.card(
+                                ui.layout_column_wrap(  "Fig 1: Recycling Requests by Date",
+                                                        "Fig 2: Density Map",
+                                                     ),
                                 ui.layout_column_wrap(
                                                         output_widget("requests_by_date"),
-                                                        output_widget("heatmap"),
-                                                     ),
+                                                        output_widget("chart2"),
+                                                     )
                             ),
                )
-
-
-                            # # Old setting
-                            # ui.card(
-                            #     output_widget("requests_by_date"),
-                            #     ),
-                            # ui.row(
-                            #     ui.input_radio_buttons("can_maps", "Cans", choices= ['Heatmap', 'USGS map'], width='400px'),
-                            #     ui.input_radio_buttons("glassbottles_maps", "Glass Bottles", choices= ['Heatmap', 'USGS map'], width='400px'),
-                            #     ui.input_radio_buttons("plasticbottles_maps", "Plastic Bottles", choices= ['Heatmap', 'USGS map'], width='400px'),
-                                
-                            # ),
-                            # ui.row(
-                            #     output_widget("heatmap_cans", width="400px" ),
-                            #     output_widget("heatmap_glassbottles", width="400px"),
-                            #     output_widget("heatmap_plasticbottles", width="400px"),
-                            # ),
            
            ),
     ),
@@ -383,10 +339,6 @@ def server(input: Inputs, output: Outputs, session: Session):
         path = file_infos[0]['datapath']
         input.detect()
         with reactive.isolate():
-
-            # Using Roboflow API ----------
-            # predictions = model.predict(path, confidence=50, overlap=50)
-            
             # Using my YOLOv5 model ----------
             predictions = model(path)
             return predictions
@@ -396,13 +348,6 @@ def server(input: Inputs, output: Outputs, session: Session):
     def classes():
         input.detect()
         with reactive.isolate():
-            
-            # # With Roboflow API -----------
-            # json_predictions = predictions().json()
-            # l_classes = []
-            # for i in json_predictions['predictions']:
-            #    l_classes.append(i['class'])
-
             # With my YOLOv5 model ----------
             results = predictions().pandas().xyxy[0]
             l_classes = results['name'].tolist()
@@ -431,9 +376,9 @@ def server(input: Inputs, output: Outputs, session: Session):
             if label == 'can':
                 box_color = (255, 0, 0)
             elif label == 'glass bottle':
-                box_color = (0, 255, 0)
+                box_color = (255, 255, 0)
             elif label == 'plastic bottle':
-                box_color = (0, 0, 255)
+                box_color = (0, 255, 255)
             else:
                 box_color = (255, 255, 255)  # default to white if no class match
 
@@ -728,25 +673,35 @@ def server(input: Inputs, output: Outputs, session: Session):
         # Extract the date component
         df_filtered['date_image'] = df_filtered['date_image'].dt.strftime('%Y-%m-%d')
         return df_filtered
-
+    
     @reactive.Calc
-    def fig1():
+    @render_widget
+    def requests_by_date():
         # Group by date and count the number of requests for each date
         df_grouped = dashboard_df().groupby('date_image').size().reset_index(name='num_requests')
 
-        # Create a Plotly figure
-        fig = px.bar(df_grouped, x='date_image', y='num_requests',
-                    labels={'date_image': 'Date', 'num_requests': 'Number of Requests'},
-                    title='Recycling Requests by Date', text_auto=True)
+        if input.radio_fig1() == '1':
+            # Create a Plotly figure
+            fig = px.bar(df_grouped, x='date_image', y='num_requests',
+                        labels={'date_image': 'Date', 'num_requests': 'Number of Requests'},
+                        text_auto=True,) #title='Recycling Requests by Date',
+        else:
+            # Create a Plotly figure
+            fig = px.line(df_grouped, x='date_image', y='num_requests', text='num_requests',
+                        labels={'date_image': 'Date', 'num_requests': 'Number of Requests'},
+                        )
+            # Customize the layout (optional)
+            fig.update_traces(textposition="top center")
+        
         # Customize the layout (optional)
         fig.update_layout(
-            xaxis_title='Date',
-            yaxis_title='Number of Requests',
-            xaxis_tickangle=-45,  # Rotate x-axis labels for better readability
-            margin=dict(l=20, r=20, t=40, b=10),
-            plot_bgcolor='rgba(0, 0, 0, 0)',
-            paper_bgcolor="rgba(0, 255, 128, 0.1)",
-        )
+                xaxis_title='Date',
+                yaxis_title='Number of Requests',
+                xaxis_tickangle=-45,  # Rotate x-axis labels for better readability
+                margin=dict(l=20, r=20, t=40, b=10),
+                plot_bgcolor='rgba(0, 0, 0, 0)',
+                paper_bgcolor="rgba(0, 255, 128, 0.1)",
+            )
         # Customize aspect
         fig.update_traces(marker_color='rgb(158,225,205)', marker_line_color='rgb(8,107,48)',
                         marker_line_width=1.5, opacity=0.6)
@@ -754,55 +709,69 @@ def server(input: Inputs, output: Outputs, session: Session):
         
         return fig
     
-    # Fig 2 heatmap -------------
-    @reactive.Calc
-    def fig2():
-        # "open-street-map", "carto-positron", "carto-darkmatter", "stamen-terrain", "stamen-toner" or "stamen-watercolor"
-        fig = px.density_mapbox(                                                  # z = n_cans, n_glassbottles, n_plasticbottles
-                                dashboard_df(), lat='latitude', lon='longitude', z='request_id', radius=5, 
-                                center=dict(lat=42.3126, lon=-83.0332), zoom=10, title="",
-                                mapbox_style="carto-darkmatter"
-                                )
-        fig.update(layout_coloraxis_showscale=False)
-        fig.update_layout(
-                        margin=dict(l=20, r=20, t=20, b=20),
-                        paper_bgcolor="rgba(0, 255, 128, 0.1)",
-                         )
+    # # Fig 2 -------------
+    #@reactive.calc
+    #@render_widget
+    #@output(id="chart2")
+    @reactive.calc
+    @render_pydeck
+    def chart2():
+        if input.radio_fig2() == '1':
+            # Heatmap Chart --------------------------------------------------------------------------
+            # "open-street-map", "carto-positron", "carto-darkmatter", "stamen-terrain", "stamen-toner" or "stamen-watercolor"
+            fig = px.density_mapbox(                                                  # z = n_cans, n_glassbottles, n_plasticbottles
+                                    dashboard_df(), lat='latitude', lon='longitude', z='request_id', radius=5, 
+                                    center=dict(lat=42.3126, lon=-83.0332), zoom=10, title="",
+                                    mapbox_style="carto-darkmatter"
+                                    )
+            fig.update(layout_coloraxis_showscale=False)
+            fig.update_layout(
+                            margin=dict(l=20, r=20, t=20, b=20),
+                            paper_bgcolor="rgba(0, 255, 128, 0.1)",
+                            )
+        else:
+            # High-scale Map ----------------------------------------------------------------------------        
+            # Get the filtered data from your DataFrame
+            data = dashboard_df()[['longitude', 'latitude']]
+
+            #print(type(data))
+            # Define the HeatmapLayer
+            layer = pdk.Layer(
+                'HexagonLayer', # "HeatmapLayer",# 'ColumnLayer', # "HexagonLayer",
+                data=data,
+                get_position=['longitude', 'latitude'],
+                auto_highlight=True,
+                radius=100, # size for grouping elements
+                elevation_scale=10,
+                pickable=True,
+                elevation_range=[0, 100],
+                get_fill_color=[10, 50, 75, 100],
+                extruded=True,
+                coverage=1,
+            )
+            tooltip = {
+                #"html": "<b>{mrt_distance}</b> meters away from an MRT station, costs <b>{price_per_unit_area}</b> NTD/sqm",
+                "style": {"background": "grey", "color": "white", "font-family": '"Helvetica Neue", Arial', "z-index": "10000"},
+            }
+
+            # Set the initial view of the map
+            # UK Center longitude=-1.415, latitude=52.2323,
+            # Windsor Center = latitude=42.3126, longitude=-83.0332,
+
+            view_state = pdk.ViewState(
+                longitude=-83.0332, 
+                latitude=42.3126,
+                zoom=10,
+                min_zoom=5,
+                max_zoom=15,
+                pitch=40.5,
+                bearing=-5.36,
+            )
+
+            fig = pdk.Deck(layers=[layer], initial_view_state=view_state, tooltip=tooltip,)
+            #fig.to_html('hexagon-example.html')
+
         return fig
-
-    # # Pydeck rendering logic for heatmap
-    # @reactive.Calc
-    # def fig2():
-    #     # Get the filtered data from your DataFrame
-    #     data = dashboard_df()[['longitude', 'latitude']]
-    #     print(type(data))
-    #     # Define the HeatmapLayer
-    #     layer = pdk.Layer(
-    #         "HexagonLayer",
-    #         data=data,
-    #         get_position=["longitude", "latitude"],
-    #         auto_highlight=True,
-    #         elevation_scale=50,
-    #         pickable=True,
-    #         elevation_range=[0, 3000],
-    #         extruded=True,
-    #         coverage=1,
-    #     )
-
-    #     # Set the initial view of the map
-    #     view_state = pdk.ViewState(
-    #         latitude=42.3126,
-    #         longitude=-83.0332,
-    #         zoom=6,
-    #         min_zoom=5,
-    #         max_zoom=15,
-    #         pitch=40.5,
-    #         bearing=-27.36,
-    #     )
-
-    #     # Return the Pydeck deck object
-    #     return pdk.Deck(layers=[layer], initial_view_state=view_state)
-
 
 
 
@@ -828,37 +797,23 @@ def server(input: Inputs, output: Outputs, session: Session):
         return total
     
 
-    @output
+    
     @render.text()
     def total_requests():
         return counting_requests()
     
-    @output
+    
     @render.text()
     def total_cans():
         return counting_cans()
     
-    @output
     @render.text()
     def total_glassbottles():
         return counting_glassbottles()
 
-    @output
     @render.text()
     def total_plasticbottles():
         return counting_plasticbottles()
-
-
-    @output
-    @render_widget
-    def requests_by_date():
-        return fig1()
-    
-    @output
-    @render_widget
-    #@render_pydeck
-    def heatmap():
-        return fig2()
     
 
 
