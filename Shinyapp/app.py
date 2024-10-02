@@ -1,23 +1,54 @@
 import numpy as np
 import pandas as pd
 import plotly.express as px
+import pydeck as pdk
 
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from shiny import App, Inputs, Outputs, Session, reactive, render, ui
 from shiny.types import FileInfo, ImgData, SilentException
+
+# Map tab
+from shiny import *
+from shinywidgets import output_widget, render_widget, render_pydeck
+import ipyleaflet as L
+from ipyleaflet import Icon, MarkerCluster
+
+
+import faicons
+from faicons import icon_svg
+
+#from shinywidgets import value_box
+
 #import requests
 import exifread # to extract image metadata
+
+from PIL import Image
 
 from asyncio import sleep
 
 import cv2
 
-# importing the model from Robolow
-from roboflow import Roboflow
-rf = Roboflow(api_key="F7o8gC2NLhuzMSLzk98A")
-project = rf.workspace().project("recycling-objects-4aqr3")
-model = project.version(3).model
+# Importing the trained YOLOv5 model in local folder
+import torch
+
+import pathlib
+temp = pathlib.PosixPath
+pathlib.PosixPath = pathlib.WindowsPath
+
+# Load your custom YOLOv5 model
+model_path = 'C:/Users/alero/Documents/GitHub/Recicling-Collection-Service/Shinyapp/Local/models/YOLOv5/best.pt'  # Update this with the path to your trained YOLOv5 model
+yolov5_dir = 'C:/Users/alero/Documents/GitHub/Recicling-Collection-Service/Shinyapp/yolov5'  # Update this with the path to your cloned YOLOv5 directory
+model = torch.hub.load(yolov5_dir, 'custom', path=model_path, source='local', force_reload=True)
+
+
+
+
+# Using my Roboflow API trained model
+# from roboflow import Roboflow
+# rf = Roboflow(api_key="F7o8gC2NLhuzMSLzk98A")
+# project = rf.workspace().project("recycling-objects-4aqr3")
+# model = project.version(3).model
 
 
 from geopy.geocoders import Nominatim
@@ -66,28 +97,45 @@ def get_gps_info(image):
     return latitude, longitude, timestamp
 
 
-# Map tab
-from shiny import *
-from shinywidgets import output_widget, render_widget
-import ipyleaflet as L
-from ipyleaflet import Icon, MarkerCluster
+
+
+
+# basemaps = {
+#   "CartoDB": L.basemaps.CartoDB.Positron,
+#   "OpenStreetMap": L.basemaps.OpenStreetMap.Mapnik,
+#   "Stamen.Toner": L.basemaps.Stamen.Toner,
+#   "Stamen.Terrain": L.basemaps.Stamen.Terrain,
+#   "Stamen.Watercolor": L.basemaps.Stamen.Watercolor,
+#   "Satellite": L.basemaps.Gaode.Satellite,
+# }
+
+# choices = {"OS": "OpenStreetMap",
+#            "ST": "Stamen.Toner", 
+#            "STe": "Stamen.Terrain", 
+#            "SW": "Stamen.Watercolor", 
+#            "HM": "Heatmap"}
 
 
 
 basemaps = {
-  "CartoDB": L.basemaps.CartoDB.Positron,
-  "OpenStreetMap": L.basemaps.OpenStreetMap.Mapnik,
-  "Stamen.Toner": L.basemaps.Stamen.Toner,
-  "Stamen.Terrain": L.basemaps.Stamen.Terrain,
-  "Stamen.Watercolor": L.basemaps.Stamen.Watercolor,
-  "Satellite": L.basemaps.Gaode.Satellite,
+    "WorldImagery": L.basemaps.Esri.WorldImagery,
+    "Mapnik": L.basemaps.OpenStreetMap.Mapnik,
+    "Positron": L.basemaps.CartoDB.Positron,
+    "DarkMatter": L.basemaps.CartoDB.DarkMatter,
+    "NatGeoWorldMap": L.basemaps.Esri.NatGeoWorldMap,
+    "France": L.basemaps.OpenStreetMap.France,
+    "DE": L.basemaps.OpenStreetMap.DE,
 }
 
-choices = {"OS": "OpenStreetMap",
-           "ST": "Stamen.Toner", 
-           "STe": "Stamen.Terrain", 
-           "SW": "Stamen.Watercolor", 
+choices = {"WI": "WorldImagery",
+           "MN": "Mapnik", 
+           "PO": "Positron", 
+           "NGM": "NatGeoWorldMap", 
            "HM": "Heatmap"}
+
+
+
+
 
 # theme
 import shinyswatch
@@ -106,96 +154,101 @@ app_ui = ui.page_navbar(
     #  cerulean, cosmo, cyborg, darkly, flatly*, journal, litera, lumen, lux,
     #  materia, minty, morph, pulse, quartz, sandstone, simplex, sketchy, slate*,
     #  solar, spacelab*, superhero, united, vapor, yeti, zephyr*
-    shinyswatch.theme.zephyr(),
+    #shinyswatch.theme.zephyr(),
     
     # Land tab App information -----------------------------
-    ui.nav("App Information",
-           {"style": "background-color: rgba(0, 255, 128, 0.1)"},
-        ui.page_fixed(
-            
-           ui.h1("App description"),
-
-           ui.markdown("This research focuses on developing an image-based detection system for recycling objects, targeting for now three key items: cans, glass bottles, and plastic bottles. Leveraging detection models, our aim is to enhance waste sorting accuracy and efficiency through automated object detection."),
-           
-           ui.a({"href": "https://github.com/arol9204/Recicling-Collection-Service", "target": "_blank"}, "Github Repo"),
-           
-           ),
-
-           
-          ),
-    
+    ui.nav_panel("App Information",
+                 ui.card(
+                    {"style": "background-color: rgba(0, 255, 128, 0.1)"},
+                    ui.page_fluid(            
+                    ui.h1("App description"),
+                    ui.markdown("This project focuses on developing an image-based detection system for recycling objects, targeting for now three key items: cans, glass bottles, and plastic bottles. Leveraging detection models, our aim is to enhance waste sorting accuracy and efficiency through automated object detection."),
+                    ui.a({"href": "https://github.com/arol9204/Recicling-Collection-Service", "target": "_blank"}, "Github Repo"),
+                    ),
+                ),
+                ),
     # Request submission tab -------------------------------
-    ui.nav("Request Submission", 
-           ui.page_fixed(
+    ui.nav_panel("Request Submission", 
+           ui.page_fluid(
+               ui.card(
                    ui.layout_sidebar(
-                       
-                       ui.panel_sidebar(
-                           {"style": "background-color: rgba(0, 255, 128, 0.1)"},
-                                        ui.input_file(  "file",
-                                                        "Please upload your picture here",
-                                                        button_label="Open camera",
-                                                        # This tells it to accept still photos only (not videos).
-                                                        accept="image/*",
-                                                        # This tells it to use the phone's rear camera. Use "user" for the front camera.
-                                                        capture="environment",
-                                                        ),
-                                        ui.output_image("image"),
-                                        ui.div(
-                                            ui.input_action_button("detect", "Detect!"),
-                                            ui.input_action_button("submit", "Submit Request!"),
-                                            )
-
+                                     ui.sidebar(
                                         
-
-                                       ),
-                       ui.panel_main(
-                          {"style": "background-color: rgba(0, 255, 128, 0.1)"},
-                                        ui.h3("Model detections"),
-                                        ui.output_plot("image_p"),
+                                        ui.input_file(  "file", 
+                                                                "Upload your picture here",
+                                                                button_label="Open camera",
+                                                                # This tells it to accept still photos only (not videos).
+                                                                accept="image/*",
+                                                                # This tells it to use the phone's rear camera. Use "user" for the front camera.
+                                                                capture="environment",
+                                                    ),
+                                        ui.card(ui.output_image("image", width='100%', height='50%',),),
                                         
-                                        ui.row(
-                          
-                                                ui.column(4, "# Cans "),
-                                                ui.column(4, "# Glass bottle"),
-                                                ui.column(4, "# Plastic bottle"),
-                                              ),
-                                        ui.row(
-                          
-                                                ui.column(4, ui.output_text_verbatim("can", placeholder=True)),
-                                                ui.column(4, ui.output_text_verbatim("glass_bottle", placeholder=True)),
-                                                ui.column(4, ui.output_text_verbatim("plastic_bottle", placeholder=True)),
-                                              ),
-
+                                        ui.layout_column_wrap(
+                                                ui.input_action_button("detect", "Detect!"),
+                                                ui.input_action_button("submit", "Submit Request!"),
+                                            ),
+                                            open='open',
+                                     ),
+                       #ui.panel_main(
+                          #{"style": "background-color: rgba(0, 255, 128, 0.1)"},
+                                    ui.card("Model detections",
+                                            ui.card(
+                                                    ui.output_plot("image_p"), width='100%', height='100%', fill=True
+                                                    ),
+                                            ui.layout_column_wrap(
+                                                         ui.value_box(
+                                                                        "Cans",
+                                                                        ui.output_text("can"),
+                                                                        theme="gradient-red-green",
+                                                                        showcase=icon_svg("jar"), # trash-can-arrow-up, trash, dumpster
+                                                                        height="150px",
+                                                                    ),
+                                                         ui.value_box(
+                                                                        "Glass Bottles",
+                                                                        ui.output_text("glass_bottle"),
+                                                                        theme="bg-gradient-teal-blue",
+                                                                        showcase=icon_svg("wine-bottle"),
+                                                                        height="150px",
+                                                                    ),
+                                                         ui.value_box(
+                                                                        "Plastic Bottles",
+                                                                        ui.output_text("plastic_bottle"),
+                                                                        theme="gradient-cyan-blue",
+                                                                        showcase=icon_svg("bottle-water"),
+                                                                        height="150px",
+                                                                    ),
+                                                         ),
+                                        
                                         ui.row(
                                             
-                                                ui.column(6, "Latitude"),
-                                                ui.column(6, "Longitude"),
+                                                ui.column(3, "Latitude"),
+                                                ui.column(3, ui.output_text_verbatim("lat", placeholder=True)),
+                                                ui.column(3, "Longitude"),
+                                                ui.column(3, ui.output_text_verbatim("lon", placeholder=True)),
                                               ),
                                         
-                                        ui.row(
-                                            
-                                                ui.column(6, ui.output_text_verbatim("lat", placeholder=True)),
-                                                ui.column(6, ui.output_text_verbatim("lon", placeholder=True)),
-                                              )
+                                        
+                                    #),
                                     ),
+                                    {"style": "background-color: rgba(0, 255, 128, 0.1)"},
                    ),
+                ),
              ),
           ),
     
     
 
     # Map for exploring requests ---------------------------
-    ui.nav("Map",
-           
-           
-                ui.page_fixed(
+    ui.nav_panel("Map",
+                ui.page_fluid(
                     ui.row(
                             ui.input_select(
                                             "basemap", "Choose a basemap",
                                             choices=list(basemaps.keys())
                                             ),
                             #ui.input_radio_buttons("type_map", "Type of Map", choices),
-                            output_widget("map", height="850px"),
+                            output_widget("map", height="700px"),
                     ),
                     ui.row(
                             ui.output_table("requests", placeholder=True),
@@ -206,47 +259,92 @@ app_ui = ui.page_navbar(
 
     # Dashboard -------------------------------------------------
 
-    ui.nav("Requests Dashboard",
+    ui.nav_panel("Requests Dashboard",
            {"style": "background-color: rgba(0, 255, 128, 0.1)"},
 
-           ui.page_fixed(
-           ui.column(4, "Total Requests"),
-           ui.output_text_verbatim("total_requests", placeholder=True),
-            
-           ui.row(
-                ui.column(4, "Total Cans"),
-                ui.column(4, "Total Glass Bottles"),
-                ui.column(4, "Total Plastic Bottles"),
-                ),
-                                        
-           ui.row(
-                ui.column(4, ui.output_text_verbatim("total_cans", placeholder=True)),
-                ui.column(4, ui.output_text_verbatim("total_galssbottles", placeholder=True)),
-                ui.column(4, ui.output_text_verbatim("total_plasticbottles", placeholder=True)),
-                ),
+           ui.page_fluid(
+               ui.layout_sidebar(
+                   ui.sidebar(
+                                ui.input_date_range("daterange", "Date range", start="2023-01-01"), 
+                                ui.input_checkbox_group(  
+                                                            "checkbox_group",  
+                                                            "Recycling Objects",  
+                                                            {  
+                                                                "c": "Cans",  
+                                                                "gb": "Glass Bottles",  
+                                                                "pb": "Plastic Bottles",  
+                                                            },
+                                                            selected=['c', 'gb', 'pb'],
+                                                        ),
+                                ui.input_radio_buttons(  
+                                                        "radio",  
+                                                        "Fig 2",  
+                                                        {"1": "Heat Map", "2": "High-scale spatial Map"},  
+                                                    )  
+                                #ui.input_action_button("action_button", "Apply"),  
+                            ),
+                            ui.card(
+                                    ui.value_box(
+                                                    "Total Requests",
+                                                    ui.output_text("total_requests"),
+                                                    theme="gradient-cyan-teal",
+                                                    showcase=icon_svg("recycle"), # trash-can-arrow-up, trash, dumpster
+                                                    height="100px",
+                                                    ),
 
-           output_widget("requests_by_date"),
+                                    ui.layout_column_wrap(
+                                                            ui.value_box(
+                                                                        "Total Cans",
+                                                                        ui.output_text("total_cans"),
+                                                                        theme="gradient-red-green",
+                                                                        showcase=icon_svg("jar"), # trash-can-arrow-up, trash, dumpster
+                                                                        height="100px",
+                                                                    ),
+                                                            ui.value_box(
+                                                                        "Total Glass Bottles",
+                                                                        ui.output_text("total_glassbottles"),
+                                                                        theme="bg-gradient-teal-blue",
+                                                                        showcase=icon_svg("wine-bottle"),
+                                                                        height="100px",
+                                                                    ),
+                                                            ui.value_box(
+                                                                        "Totla Plastic Bottles",
+                                                                        ui.output_text("total_plasticbottles"),
+                                                                        theme="gradient-cyan-blue",
+                                                                        showcase=icon_svg("bottle-water"),
+                                                                        height="100px",
+                                                                    ),
+                                                            ),
+                                ),
+                            ui.card(
+                                ui.layout_column_wrap(
+                                                        output_widget("requests_by_date"),
+                                                        output_widget("heatmap"),
+                                                     ),
+                            ),
+               )
 
-           ui.row(
-               ui.input_radio_buttons("can_maps", "Cans", choices= ['Heatmap', 'USGS map'], width='400px'),
-               ui.input_radio_buttons("glassbottles_maps", "Glass Bottles", choices= ['Heatmap', 'USGS map'], width='400px'),
-               ui.input_radio_buttons("plasticbottles_maps", "Plastic Bottles", choices= ['Heatmap', 'USGS map'], width='400px'),
-               
-           ),
-           
 
-           ui.row(
-               output_widget("heatmap_cans", width="400px" ),
-               output_widget("heatmap_glassbottles", width="400px"),
-               output_widget("heatmap_plasticbottles", width="400px"),
-           ),
+                            # # Old setting
+                            # ui.card(
+                            #     output_widget("requests_by_date"),
+                            #     ),
+                            # ui.row(
+                            #     ui.input_radio_buttons("can_maps", "Cans", choices= ['Heatmap', 'USGS map'], width='400px'),
+                            #     ui.input_radio_buttons("glassbottles_maps", "Glass Bottles", choices= ['Heatmap', 'USGS map'], width='400px'),
+                            #     ui.input_radio_buttons("plasticbottles_maps", "Plastic Bottles", choices= ['Heatmap', 'USGS map'], width='400px'),
+                                
+                            # ),
+                            # ui.row(
+                            #     output_widget("heatmap_cans", width="400px" ),
+                            #     output_widget("heatmap_glassbottles", width="400px"),
+                            #     output_widget("heatmap_plasticbottles", width="400px"),
+                            # ),
            
            ),
     ),
     
     title="Recycling Service Request",
-
-
 )
 
 
@@ -256,7 +354,6 @@ app_ui = ui.page_navbar(
 def server(input: Inputs, output: Outputs, session: Session):
 
     # Ploting the uploaded image
-    @output
     @render.image
     async def image() -> ImgData:
         file_infos: list[FileInfo] = input.file()
@@ -264,91 +361,123 @@ def server(input: Inputs, output: Outputs, session: Session):
             raise SilentException()
 
         file_info = file_infos[0]
-        img: ImgData = {"src": str(file_info["datapath"]), "width": "300px"}
+        img: ImgData = {"src": str(file_info["datapath"]), "width": "100%", "height": '400px'}
         return img
-    
-    # Using the Roboflow model to detect objects in the image and return the prediction
-    @reactive.Calc
-    def predictions():
-        file_infos: list[FileInfo] = input.file()
-        if not file_infos:
-            raise SilentException()
-
-        path = file_infos[0]['datapath']
-
-        input.detect()
-        with reactive.isolate():
-            predictions = model.predict(path, confidence=50, overlap=50)
-                 
-            return predictions
-        
-    # Here we put into a list all the recyling object classes in the image
-    @reactive.Calc
-    def classes():
-
-        input.detect()
-        with reactive.isolate():
-            json_predictions = predictions().json()
-            l_classes = []
-            for i in json_predictions['predictions']:
-                l_classes.append(i['class'])
-
-        
-            return l_classes
     
     # Getting the image path
     @reactive.Calc
     def image_path():
         file_infos: list[FileInfo] = input.file()
-        
         # If there is NOT GPS information it should raise an exception message
         if not file_infos:
             raise SilentException()
         file_info = file_infos[0]["datapath"]
         return file_info
+        
+    # Getting the prediction from the object detection model
+    @reactive.Calc
+    def predictions():
+        file_infos: list[FileInfo] = input.file()
+        if not file_infos:
+            raise SilentException()
+        path = file_infos[0]['datapath']
+        input.detect()
+        with reactive.isolate():
+
+            # Using Roboflow API ----------
+            # predictions = model.predict(path, confidence=50, overlap=50)
+            
+            # Using my YOLOv5 model ----------
+            predictions = model(path)
+            return predictions
+        
+    # Here we put into a list all the recyling object classes in the image
+    @reactive.Calc
+    def classes():
+        input.detect()
+        with reactive.isolate():
+            
+            # # With Roboflow API -----------
+            # json_predictions = predictions().json()
+            # l_classes = []
+            # for i in json_predictions['predictions']:
+            #    l_classes.append(i['class'])
+
+            # With my YOLOv5 model ----------
+            results = predictions().pandas().xyxy[0]
+            l_classes = results['name'].tolist()
+            return l_classes
+
 
     # Drawing the detection boxes in the image uploaded
     @reactive.Calc
     def image_anotations():
-
-        image = mpimg.imread(image_path())
-       
-        # infer on a local image
-        json_predictions = predictions().json()
-
-        for bounding_box in json_predictions['predictions']:
-            x0 = bounding_box['x'] - bounding_box['width'] / 2
-            x1 = bounding_box['x'] + bounding_box['width'] / 2
-            y0 = bounding_box['y'] - bounding_box['height'] / 2
-            y1 = bounding_box['y'] + bounding_box['height'] / 2
-    
-            start_point = (int(x0), int(y0))
-            end_point = (int(x1), int(y1))
-
-            cv2.rectangle(image, start_point, end_point, color=(255,0,0), thickness=5)
-    
-            cv2.putText(
-                        image,
-                        bounding_box["class"],
-                        (int(x0), int(y0) - 10),
-                        fontFace = cv2.FONT_HERSHEY_SIMPLEX,
-                        fontScale = 1.5,
-                        color = (255, 0, 0),
-                        thickness=3
-                        )
         
+        # Load the image
+        image = mpimg.imread(image_path())
+
+        # Rotate the image 90 degrees clockwise
+        image = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
+
+        # Using YOLOv5 output results ---------------
+        # Iterate over the results DataFrame
+        results_df = predictions().pandas().xyxy[0]
+        for _, pred in results_df.iterrows():
+            x0, y0, x1, y1 = int(pred['xmin']), int(pred['ymin']), int(pred['xmax']), int(pred['ymax'])
+            label = pred['name']
+            confidence = pred['confidence']
+
+            # Set box color based on the class label
+            if label == 'can':
+                box_color = (255, 0, 0)
+            elif label == 'glass bottle':
+                box_color = (0, 255, 0)
+            elif label == 'plastic bottle':
+                box_color = (0, 0, 255)
+            else:
+                box_color = (255, 255, 255)  # default to white if no class match
+
+            # Draw the bounding box
+            cv2.rectangle(image, (x0, y0), (x1, y1), color=box_color, thickness=5)
+
+            # Create the label with confidence score
+            label_with_confidence = f"{label}: {confidence:.0%}"
+
+            # Put the class label on the bounding box
+            cv2.putText(
+                image,
+                label_with_confidence,
+                (x0, y0 - 10),
+                fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                fontScale=5,
+                color=box_color,
+                thickness=10
+            )
+        # Convert image back to RGB for displaying with matplotlib
+        #image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  
         return image
 
     # Plotting the image with the annotations
-    @output
-    @render.plot()
+    @render.plot
+    #@render.image
     def image_p():
         input.detect()
         with reactive.isolate():
-            return plt.imshow(image_anotations())
+
+            # Using my trained YOLOv5 model -------------------
+            # Annotate the image
+            annotated_image = image_anotations()
+
+            # Plot the annotated image using matplotlib
+            #fig, ax = plt.subplots(figsize=(10, 10), dpi=100)  # Specify DPI
+            fig, ax = plt.subplots()  # Specify DPI
+            plt.imshow(annotated_image)
+            plt.axis('off')  # Hide axis
+            #plt.gcf()
+            #plt.gcf()
+            return fig
 
     # Getting the number of cans detected
-    @output
     @render.text()
     def can():
         input.detect()
@@ -356,7 +485,6 @@ def server(input: Inputs, output: Outputs, session: Session):
             return np.count_nonzero(np.array(classes()) == 'can') ### when there is not detection it through this warning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
     
     # Getting the number of glass bottles detected
-    @output
     @render.text()
     def glass_bottle():
         input.detect()
@@ -364,7 +492,6 @@ def server(input: Inputs, output: Outputs, session: Session):
             return np.count_nonzero(np.array(classes()) == 'glass bottle') ### when there is not detection it through this warning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
     
     # Getting the number of plastic bottles detected
-    @output
     @render.text()
     def plastic_bottle():
         input.detect()
@@ -372,17 +499,15 @@ def server(input: Inputs, output: Outputs, session: Session):
             return np.count_nonzero(np.array(classes()) == 'plastic bottle') ### when there is not detection it through this warning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
     
     # Getting the latitude of place where the image was taken
-    @output
+    
     @render.text
     def lat():
         input.detect()
         with reactive.isolate():
             latitude = get_gps_info(image_path())[0]
-        
             return latitude
     
     # Getting the longitude of place where the image was taken
-    @output
     @render.text
     def lon():
         input.detect()
@@ -423,7 +548,7 @@ def server(input: Inputs, output: Outputs, session: Session):
     connection.close()
 
     # Here we are inserting all the information from the image into the PostgreSQL table Request (localization, date, predictions), using the button submit to insert the new information detected in the image
-    @reactive.Effect
+    @reactive.effect
     @reactive.event(input.submit)
     def add_value_to_list():
         if get_gps_info(image_path())[0] != None and get_gps_info(image_path())[1] != None and len(classes()) > 0:
@@ -488,7 +613,7 @@ def server(input: Inputs, output: Outputs, session: Session):
         
         # Through an error in case that there is not information about the localization of the image (no lat, no long)    
         elif get_gps_info(image_path())[0] == None and get_gps_info(image_path())[1] == None:
-            ui.notification_show("Sorry but as the image does not contain the localization information it can not be submitted as a request for collection")
+            ui.notification_show("Sorry but as the image does not contain the localization information it can not be submitted as a request for collection", type='message')
             #await sleep(1)
             ui.notification_show("Warning message", type="warning")
         elif len(classes()) == 0:
@@ -497,7 +622,7 @@ def server(input: Inputs, output: Outputs, session: Session):
             ui.notification_show("Warning message", type="warning")
         
     # Map Tab ---------------------------------------------------------------------
-    
+
     # Defining the different type of icons
     coin_icon = Icon(icon_url = 'https://raw.githubusercontent.com/arol9204/arol9204/main/images/1.cent.png', icon_size=[15, 15])
     leaf_icon = Icon(icon_url='https://leafletjs.com/examples/custom-icons/leaf-green.png', icon_size=[38, 95], icon_anchor=[22,94])
@@ -506,13 +631,11 @@ def server(input: Inputs, output: Outputs, session: Session):
     plastic_bottle_icon = Icon(icon_url='https://raw.githubusercontent.com/arol9204/arol9204/main/images/4.3water-bottle.png', icon_size=[25, 25])
     canglassplastic_mix_icon = Icon(icon_url='https://raw.githubusercontent.com/arol9204/arol9204/main/images/4.4canglassplastic_mix.png', icon_size=[20, 20])
 
-    
-
     @reactive.Calc
     def mapping():
         basemap = basemaps[input.basemap()]
         map = L.Map(basemap = basemap, center=(0, 0), zoom = 2, scroll_wheel_zoom=True)
-        map.layout.height = "800px"
+        map.layout.height = "700px"
         # Beer stores markers
         beer_store_mark1 = L.Marker(location=[42.31263551985872, -83.03326561020128], icon=leaf_icon, draggable=False)
         beer_store_mark2 = L.Marker(location=[42.30366417918876, -83.05465990194318], icon=leaf_icon, draggable=False)
@@ -542,7 +665,7 @@ def server(input: Inputs, output: Outputs, session: Session):
             # # Without cluster
             # map.add_layer(request_marker)
 
-        @reactive.Effect()
+        @reactive.effect()
         @reactive.event(input.submit)
         def _():
             if get_gps_info(image_path())[0] != None and get_gps_info(image_path())[1] != None and len(classes()) > 0:
@@ -570,20 +693,51 @@ def server(input: Inputs, output: Outputs, session: Session):
     # Dashboard tab -----------------------------------------------------------------------------------
 
     @reactive.Calc
-    def fig1():
-        # Convert the 'date' column to a datetime object
+    def dashboard_df():
+        df()
+
+        # Convert the 'date_image' column to a datetime object
         df()['date_image'] = pd.to_datetime(df()['date_image'], format='%Y:%m:%d %H:%M:%S')
 
-        # Extract date component
-        df()['date_image'] = df()['date_image'].dt.strftime('%Y-%m-%d')
+        df_filtered = df()
 
+        # Saving the data range values 
+        start_date = pd.Timestamp(input.daterange()[0])
+        end_date = pd.Timestamp(input.daterange()[1])
+
+        # Saving in a list the check box value
+        box_values = list(input.checkbox_group())
+
+        # Initialize a mask for the selection
+        mask = pd.Series(False, index=df_filtered.index)
+
+        # Apply filters for the selected objects
+        if "c" in box_values:
+            mask = mask | (df_filtered['n_cans'] > 0)
+        if "gb" in box_values:
+            mask = mask | (df_filtered['n_glassbottles'] > 0)
+        if "pb" in box_values:
+            mask = mask | (df_filtered['n_plasticbottles'] > 0)
+
+        # Filter the DataFrame using the combined mask
+        df_filtered = df_filtered[mask]
+
+        # Filtering the dataframe by the date range selected in the filters area
+        df_filtered = df_filtered[(df()['date_image'] >= start_date) & (df_filtered['date_image'] <= end_date)]
+
+        # Extract the date component
+        df_filtered['date_image'] = df_filtered['date_image'].dt.strftime('%Y-%m-%d')
+        return df_filtered
+
+    @reactive.Calc
+    def fig1():
         # Group by date and count the number of requests for each date
-        df_grouped = df().groupby('date_image').size().reset_index(name='num_requests')
+        df_grouped = dashboard_df().groupby('date_image').size().reset_index(name='num_requests')
 
         # Create a Plotly figure
-        fig = px.bar(df_grouped, x='date_image', y='num_requests', labels={'date_image': 'Date', 'num_requests': 'Number of Requests'},
-             title='Recycling Requests by Date', text_auto=True)
-
+        fig = px.bar(df_grouped, x='date_image', y='num_requests',
+                    labels={'date_image': 'Date', 'num_requests': 'Number of Requests'},
+                    title='Recycling Requests by Date', text_auto=True)
         # Customize the layout (optional)
         fig.update_layout(
             xaxis_title='Date',
@@ -593,118 +747,84 @@ def server(input: Inputs, output: Outputs, session: Session):
             plot_bgcolor='rgba(0, 0, 0, 0)',
             paper_bgcolor="rgba(0, 255, 128, 0.1)",
         )
-
         # Customize aspect
         fig.update_traces(marker_color='rgb(158,225,205)', marker_line_color='rgb(8,107,48)',
-                          marker_line_width=1.5, opacity=0.6)
-
+                        marker_line_width=1.5, opacity=0.6)
         fig.layout.height = 400
+        
         return fig
     
+    # Fig 2 heatmap -------------
     @reactive.Calc
-    def fig2_1():
-        if input.can_maps() == 'Heatmap':
-            # "open-street-map", "carto-positron", "carto-darkmatter", "stamen-terrain", "stamen-toner" or "stamen-watercolor"
-            fig = px.density_mapbox(df()[df()['n_cans'] > 0], lat='latitude', lon='longitude', z='n_cans', radius=10,
-                            center=dict(lat=42.3126, lon=-83.0332), zoom=10, title="",
-                            mapbox_style="carto-darkmatter")
-            fig.update(layout_coloraxis_showscale=False)
-            fig.update_layout(
-                            margin=dict(l=20, r=20, t=20, b=20),
-                            paper_bgcolor="rgba(0, 255, 128, 0.1)",
-                             )
-        elif input.can_maps() == 'USGS map':
-            fig = px.scatter_mapbox(df()[df()['n_cans'] > 0], lat="latitude", lon="longitude",
-                        color_discrete_sequence=["fuchsia"], zoom=3, height=400)
-            fig.update_layout(
-                mapbox_style="white-bg",
-                mapbox_layers=[
-                    {
-                        "below": 'traces',
-                        "sourcetype": "raster",
-                        "sourceattribution": "United States Geological Survey",
-                        "source": [
-                            "https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}"
-                        ]
-                    }
-                ])
-            fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
+    def fig2():
+        # "open-street-map", "carto-positron", "carto-darkmatter", "stamen-terrain", "stamen-toner" or "stamen-watercolor"
+        fig = px.density_mapbox(                                                  # z = n_cans, n_glassbottles, n_plasticbottles
+                                dashboard_df(), lat='latitude', lon='longitude', z='request_id', radius=5, 
+                                center=dict(lat=42.3126, lon=-83.0332), zoom=10, title="",
+                                mapbox_style="carto-darkmatter"
+                                )
+        fig.update(layout_coloraxis_showscale=False)
+        fig.update_layout(
+                        margin=dict(l=20, r=20, t=20, b=20),
+                        paper_bgcolor="rgba(0, 255, 128, 0.1)",
+                         )
         return fig
-    
-    @reactive.Calc
-    def fig2_2():
-        if input.glassbottles_maps() == 'Heatmap':
-            fig = px.density_mapbox(df()[df()['n_glassbottles'] > 0], lat='latitude', lon='longitude', z='n_glassbottles', radius=10,
-                            center=dict(lat=42.3126, lon=-83.0332), zoom=10, title="",
-                            mapbox_style="carto-darkmatter")
-            fig.update(layout_coloraxis_showscale=False)
-            fig.update_layout(
-                            margin=dict(l=20, r=20, t=20, b=20),
-                            paper_bgcolor="rgba(0, 255, 128, 0.1)",
-                             )
-        elif input.glassbottles_maps() == 'USGS map':
-            fig = px.scatter_mapbox(df()[df()['n_glassbottles'] > 0], lat="latitude", lon="longitude",
-                        color_discrete_sequence=["fuchsia"], zoom=3, height=400)
-            fig.update_layout(
-                mapbox_style="white-bg",
-                mapbox_layers=[
-                    {
-                        "below": 'traces',
-                        "sourcetype": "raster",
-                        "sourceattribution": "United States Geological Survey",
-                        "source": [
-                            "https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}"
-                        ]
-                    }
-                ])
-            fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
 
-        return fig
+    # # Pydeck rendering logic for heatmap
+    # @reactive.Calc
+    # def fig2():
+    #     # Get the filtered data from your DataFrame
+    #     data = dashboard_df()[['longitude', 'latitude']]
+    #     print(type(data))
+    #     # Define the HeatmapLayer
+    #     layer = pdk.Layer(
+    #         "HexagonLayer",
+    #         data=data,
+    #         get_position=["longitude", "latitude"],
+    #         auto_highlight=True,
+    #         elevation_scale=50,
+    #         pickable=True,
+    #         elevation_range=[0, 3000],
+    #         extruded=True,
+    #         coverage=1,
+    #     )
+
+    #     # Set the initial view of the map
+    #     view_state = pdk.ViewState(
+    #         latitude=42.3126,
+    #         longitude=-83.0332,
+    #         zoom=6,
+    #         min_zoom=5,
+    #         max_zoom=15,
+    #         pitch=40.5,
+    #         bearing=-27.36,
+    #     )
+
+    #     # Return the Pydeck deck object
+    #     return pdk.Deck(layers=[layer], initial_view_state=view_state)
+
+
+
+
+    # KPI Values ---------------
+    @reactive.Calc
+    def counting_cans():
+        total = dashboard_df()['n_cans'].sum()
+        return total
     
     @reactive.Calc
-    def fig2_3():
-        if input.plasticbottles_maps() == 'Heatmap':
-            ### df()['n_plasticbottles'] == 1 this condition should be "> 0"
-            fig = px.density_mapbox(df()[df()['n_plasticbottles'] == 1], lat='latitude', lon='longitude', z='n_plasticbottles', radius=10,
-                            center=dict(lat=42.3126, lon=-83.0332), zoom=10, title="", 
-                            mapbox_style="carto-darkmatter")
-            fig.update(layout_coloraxis_showscale=False)
-            fig.update_layout(
-                            margin=dict(l=20, r=20, t=20, b=20),
-                            paper_bgcolor="rgba(0, 255, 128, 0.1)",
-                             )
-        elif input.plasticbottles_maps() == 'USGS map':
-            fig = px.scatter_mapbox(df()[df()['n_plasticbottles'] > 0], lat="latitude", lon="longitude",
-                        color_discrete_sequence=["fuchsia"], zoom=3, height=400)
-            fig.update_layout(
-                mapbox_style="white-bg",
-                mapbox_layers=[
-                    {
-                        "below": 'traces',
-                        "sourcetype": "raster",
-                        "sourceattribution": "United States Geological Survey",
-                        "source": [
-                            "https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}"
-                        ]
-                    }
-                ])
-            fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
-        return fig
-    
-    def counting_cans():
-        total = df()['n_cans'].sum()
-        return total
-    
     def counting_glassbottles():
-        total = df()['n_glassbottles'].sum()
+        total = dashboard_df()['n_glassbottles'].sum()
         return total
     
+    @reactive.Calc
     def counting_plasticbottles():
-        total = df()['n_plasticbottles'].sum()
+        total = dashboard_df()['n_plasticbottles'].sum()
         return total
     
+    @reactive.Calc
     def counting_requests():
-        total = df().shape[0]
+        total = dashboard_df().shape[0]
         return total
     
 
@@ -736,17 +856,10 @@ def server(input: Inputs, output: Outputs, session: Session):
     
     @output
     @render_widget
-    def heatmap_cans():
-        return fig2_1()
-    @output
-    @render_widget
-    def heatmap_glassbottles():
-        return fig2_2()
+    #@render_pydeck
+    def heatmap():
+        return fig2()
     
-    @output
-    @render_widget
-    def heatmap_plasticbottles():
-        return fig2_3()
 
 
 
