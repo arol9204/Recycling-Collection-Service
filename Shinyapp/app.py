@@ -29,17 +29,31 @@ from asyncio import sleep
 
 import cv2
 
+
+# ----------------------------------#
+# Loading Computer Vision Models ---# 
+# ----------------------------------#
+
+
+# # Loading custom YOLOv11 model -------------------------
+# from ultralytics import YOLO
+# model_path = 'D:/3. Projects/RecylingNet/Models/YOLO Models/YOLOv11s/200 epochs/best.pt'
+# model = YOLO(model_path)
+
+
+
+# Load your custom YOLOv5 model ---------------------------------------
 # Importing the trained YOLOv5 model in local folder
 import torch
-
 import pathlib
 temp = pathlib.PosixPath
 pathlib.PosixPath = pathlib.WindowsPath
 
-# Load your custom YOLOv5 model
-model_path = 'C:/Users/alero/Documents/GitHub/Recicling-Collection-Service/Shinyapp/Local/models/YOLOv5/best.pt'  # Update this with the path to your trained YOLOv5 model
-yolov5_dir = 'C:/Users/alero/Documents/GitHub/Recicling-Collection-Service/Shinyapp/yolov5'  # Update this with the path to your cloned YOLOv5 directory
+model_path = 'C:/Users/alero/Documents/GitHub/Recycling-Collection-Service/Shinyapp/Local/models/YOLOv5/best.pt'  # Update this with the path to your trained YOLOv5 model
+yolov5_dir = 'C:/Users/alero/Documents/GitHub/Recycling-Collection-Service/Shinyapp/yolov5'  # Update this with the path to your cloned YOLOv5 directory
 model = torch.hub.load(yolov5_dir, 'custom', path=model_path, source='local', force_reload=True)
+
+
 
 
 from geopy.geocoders import Nominatim
@@ -123,15 +137,107 @@ app_ui = ui.page_navbar(
     
     # Land tab App information -----------------------------
     ui.nav_panel("App Information",
-                 ui.card(
-                    {"style": "background-color: rgba(0, 255, 128, 0.1)"},
-                    ui.page_fluid(            
-                    ui.h1("App description"),
-                    ui.markdown("This project focuses on developing an image-based detection system for recycling objects, targeting for now three key items: cans, glass bottles, and plastic bottles. Leveraging detection models, our aim is to enhance waste sorting accuracy and efficiency through automated object detection."),
-                    ui.a({"href": "https://github.com/arol9204/Recicling-Collection-Service", "target": "_blank"}, "Github Repo"),
-                    ),
+                ui.page_fluid(
+        ui.h1("Recycling Collection Service", class_="text-center", style="font-weight: bold; color: #2E8B57;"),
+        ui.output_image("UI_image1"),
+        ui.markdown(
+            """
+            Welcome to the Recycling Collection Service app! Our goal is to promote responsible recycling by using technology to make the recycling process easier and more efficient. This app leverages the power of computer vision and location-based data to help users identify recyclable items and contribute to the community's sustainability efforts.
+            """,
+            
+        ),
+        ui.h2("What is the App's Purpose?", style="color: #4CAF50; margin-top: 30px;"),
+        ui.markdown(
+            """
+            The Recycling Collection Service app aims to assist you in identifying recyclable objects such as cans, glass bottles, and plastic bottles. By using advanced image-based detection models, the app helps sort these items efficiently, improving waste management and enhancing recycling efforts. The goal is to help create a cleaner and more sustainable environment.
+            """,
+            
+        ),
+        ui.h2("Roadmap to Using the App", style="color: #4CAF50; margin-top: 30px;"),
+        ui.markdown(
+            """
+            Follow these simple steps to use the Recycling Collection Service app effectively:
+            """,
+            
+        ),
+        ui.tags.ol(
+            ui.tags.li(
+                ui.tags.div(
+                    ui.output_image("UI_image2"),
+                    style="text-align: center;"
+                
                 ),
+                ui.tags.b("Upload Your Picture"),
+                ": Start by clicking on the \"Request Submission\" tab and uploading an image of an item you would like to recycle. You can capture the image using your phone's camera or select one from your gallery.",
+                
+            ),
+            ui.tags.li(
+                ui.tags.div(
+                    ui.output_image("UI_image3"),
+                    style="text-align: center;"
                 ),
+                ui.tags.b("Detect the Item"),
+                ": After uploading the picture, click the \"Detect!\" button to let the app identify the item in the image. The app utilizes a custom YOLO model to detect cans, glass bottles, and plastic bottles, and it will show you the detection results with bounding boxes.",
+                
+            ),
+            ui.tags.li(
+                ui.tags.div(
+                    ui.output_image("UI_image4"),
+                    style="text-align: center;"
+                ),
+                ui.tags.b("Submit a Request"),
+                ": If you wish to add your detected items to the community map, click the \"Submit Request!\" button. This will add your contribution to the recycling request map, which helps the community understand areas with high recycling activity.",
+                
+            ),
+            ui.tags.li(
+                ui.tags.div(
+                    ui.output_image("UI_image5"),
+                    style="text-align: center;"
+                ),
+                ui.tags.b("View Map and Dashboard"),
+                ": Once your request is submitted, explore the \"Map\" tab to see all community contributions, and visit the \"Requests Dashboard\" to get insights into recycling activities.",
+                
+            )
+        ),
+        ui.h2("Features of the App", style="color: #4CAF50; margin-top: 30px;"),
+        ui.tags.ul(
+            ui.tags.li(
+                ui.tags.b("Real-time Detection"),
+                ": The app uses cutting-edge object detection technology to identify recyclable items accurately.",
+                
+            ),
+            ui.tags.li(
+                ui.tags.b("Interactive Map"),
+                ": On the \"Map\" tab, you can explore all the requests submitted by users in your area. The map displays the locations of recyclable items detected, allowing the community to visualize local recycling efforts.",
+                
+            ),
+            ui.tags.li(
+                ui.tags.b("Dashboard Insights"),
+                ": The \"Requests Dashboard\" provides valuable insights into the total recycling requests, the number of different items collected, and visualizations of recycling activities over time.",
+                
+            ),
+        ),
+        ui.h2("Get Involved!", style="color: #4CAF50; margin-top: 30px;"),
+        ui.markdown(
+            """
+            Your participation matters! Each submission helps improve local waste management and promotes responsible recycling. You can track your contributions, explore recycling hotspots, and get a clearer picture of the collective impact our community is making.
+
+            Check out the [GitHub Repository](https://github.com/arol9204/Recycling-Collection-Service) for more information and source code. Let's make recycling smarter and our community greener, together!
+            """,
+            
+        ),
+        ui.h2("Questions or Feedback?", style="color: #4CAF50; margin-top: 30px;"),
+        ui.markdown(
+            """
+            If you have any questions or feedback, feel free to reach out! Together, we can make a significant impact on reducing waste and promoting sustainability.
+            """,
+            
+        )
+                ),
+
+
+    ),
+
     # Request submission tab -------------------------------
     ui.nav_panel("Request Submission", 
            ui.page_fluid(
@@ -309,6 +415,46 @@ app_ui = ui.page_navbar(
 ###############################################
 def server(input: Inputs, output: Outputs, session: Session):
 
+    # Landing page images
+    @render.image  
+    def UI_image1():
+        img = {"src": 'C:/Users/alero/Documents/GitHub/Recycling-Collection-Service/Assets/AI generated images/DALL.png', "height":'400px', "width":'100%'}  
+        return img 
+    
+    @render.image  
+    def UI_image2():
+        img = {"src": 'C:/Users/alero/Documents/GitHub/Recycling-Collection-Service/Assets/AI generated images/DALL·E step2.webp',"height":'200px', "width":'25%'}  
+        return img 
+
+    @render.image  
+    def UI_image3():
+            img = {"src": 'C:/Users/alero/Documents/GitHub/Recycling-Collection-Service/Assets/AI generated images/DALL·E step3.webp',"height":'200px', "width":'25%'}  
+            return img 
+    
+    @render.image  
+    def UI_image4():
+        img = {"src": 'C:/Users/alero/Documents/GitHub/Recycling-Collection-Service/Assets/AI generated images/DALL·E step4.webp',"height":'200px', "width":'25%'}  
+        return img 
+
+    @render.image  
+    def UI_image5():
+        img = {"src": 'C:/Users/alero/Documents/GitHub/Recycling-Collection-Service/Assets/AI generated images/DALL·E step4.webp',"height":'200px', "width":'25%'}  
+        return img 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     # Ploting the uploaded image
     @render.image
     async def image() -> ImgData:
@@ -341,6 +487,7 @@ def server(input: Inputs, output: Outputs, session: Session):
         with reactive.isolate():
             # Using my YOLOv5 model ----------
             predictions = model(path)
+            print(predictions)
             return predictions
         
     # Here we put into a list all the recyling object classes in the image
@@ -351,6 +498,7 @@ def server(input: Inputs, output: Outputs, session: Session):
             # With my YOLOv5 model ----------
             results = predictions().pandas().xyxy[0]
             l_classes = results['name'].tolist()
+            print(results)
             return l_classes
 
 
@@ -444,7 +592,6 @@ def server(input: Inputs, output: Outputs, session: Session):
             return np.count_nonzero(np.array(classes()) == 'plastic bottle') ### when there is not detection it through this warning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
     
     # Getting the latitude of place where the image was taken
-    
     @render.text
     def lat():
         input.detect()
@@ -469,11 +616,13 @@ def server(input: Inputs, output: Outputs, session: Session):
                                    'plastic_bottles': [],
                                    'latitude': [],
                                    'longitude': [],
+                                   
                                    'city': [],
                                    'province': [],
                                    'country': [],
                                    'path': [],
                                    'date_image': [],
+                                   'postcode': [],
                                    }))
     
     # PostgreSQL connexion
@@ -488,7 +637,7 @@ def server(input: Inputs, output: Outputs, session: Session):
     # Selecting all the information from the request table
     cursor.execute("SELECT * FROM requests")
     record = cursor.fetchall()
-    df.set(pd.DataFrame(record, columns=["request_id", "n_cans", "n_glassbottles", "n_plasticbottles", "latitude", "longitude", "city", "province", "country", "image_path", "date_image"]))
+    df.set(pd.DataFrame(record, columns=["request_id", "n_cans", "n_glassbottles", "n_plasticbottles", "latitude", "longitude", "city", "province", "country", "image_path", "date_image", "postcode"]))
     cursor.close()
     connection.close()
 
@@ -503,11 +652,12 @@ def server(input: Inputs, output: Outputs, session: Session):
             # Extract city, province, and country
             if location:
                 address = location.raw['address']
+                postcode = address.get('postcode', '')
                 city = address.get('city', '')
                 province = address.get('state', '')
                 country = address.get('country', '')
             else:
-                city = province = country = 'Unknown'
+                postcode = city = province = country = 'Unknown'
             
            
             # PostgreSQL connexion
@@ -524,13 +674,13 @@ def server(input: Inputs, output: Outputs, session: Session):
             # # Selecting all the information from the request table
             # cursor.execute("SELECT * FROM requests")
             # record = cursor.fetchall()
-            # df.set(pd.DataFrame(record, columns=["request_id", "n_cans", "n_glassbottles", "n_plasticbottles", "latitude", "longitude", "city", "province", "country", "image_path", "date_image"]))
+            # df.set(pd.DataFrame(record, columns=["request_id", "n_cans", "n_glassbottles", "n_plasticbottles", "latitude", "longitude", "city", "province", "country", "image_path", "date_image", "postcode"]))
             request_id = df().shape[0] + 1
 
 
             # 2. Inserting values by predefining the values in a variable
             # We used a parameterized query to use Python variables as parameter values at execution time. Using a parameterized query, we can pass python variables as a query parameter using placeholders (%s).
-            insert_query = """ INSERT INTO requests (request_id, n_cans, n_glassbottles, n_plasticbottles, latitude, longitude, city, province, country, image_path, date_image) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) """
+            insert_query = """ INSERT INTO requests (request_id, n_cans, n_glassbottles, n_plasticbottles, latitude, longitude, city, province, country, image_path, date_image, postcode) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) """
             record_to_insert = (request_id, 
                                 np.count_nonzero(np.array(classes()) == 'can'),
                                 np.count_nonzero(np.array(classes()) == 'glass bottle'), 
@@ -541,7 +691,8 @@ def server(input: Inputs, output: Outputs, session: Session):
                                 province,
                                 country,
                                 image_path(),
-                                get_gps_info(image_path())[2]
+                                get_gps_info(image_path())[2],
+                                postcode,
                                 )
             cursor.execute(insert_query, record_to_insert)
             connection.commit()
@@ -549,7 +700,7 @@ def server(input: Inputs, output: Outputs, session: Session):
             # Selecting all the information from the request table
             cursor.execute("SELECT * FROM requests")
             record = cursor.fetchall()
-            df.set(pd.DataFrame(record, columns=["request_id", "n_cans", "n_glassbottles", "n_plasticbottles", "latitude", "longitude", "city", "province", "country", "image_path", "date_image"]))
+            df.set(pd.DataFrame(record, columns=["request_id", "n_cans", "n_glassbottles", "n_plasticbottles", "latitude", "longitude", "city", "province", "country", "image_path", "date_image", "postcode"]))
 
             #print(record_to_insert) # here we can check if we are getting the information
             #print("1 Record inserted succesfully")
@@ -681,12 +832,12 @@ def server(input: Inputs, output: Outputs, session: Session):
         df_grouped = dashboard_df().groupby('date_image').size().reset_index(name='num_requests')
 
         if input.radio_fig1() == '1':
-            # Create a Plotly figure
+            # Create a barplot  figure
             fig = px.bar(df_grouped, x='date_image', y='num_requests',
                         labels={'date_image': 'Date', 'num_requests': 'Number of Requests'},
                         text_auto=True,) #title='Recycling Requests by Date',
         else:
-            # Create a Plotly figure
+            # Create a lineplot figure
             fig = px.line(df_grouped, x='date_image', y='num_requests', text='num_requests',
                         labels={'date_image': 'Date', 'num_requests': 'Number of Requests'},
                         )
@@ -700,10 +851,10 @@ def server(input: Inputs, output: Outputs, session: Session):
                 xaxis_tickangle=-45,  # Rotate x-axis labels for better readability
                 margin=dict(l=20, r=20, t=40, b=10),
                 plot_bgcolor='rgba(0, 0, 0, 0)',
-                paper_bgcolor="rgba(0, 255, 128, 0.1)",
+                paper_bgcolor="rgba(0, 0, 0, 0.1)", # "rgba(0, 255, 128, 0.1)",
             )
         # Customize aspect
-        fig.update_traces(marker_color='rgb(158,225,205)', marker_line_color='rgb(8,107,48)',
+        fig.update_traces(marker_color='rgb(158,225,205)', marker_line_color='rgb(8,107,48)', # marker_color='rgb(158,225,205)', marker_line_color='rgb(8,107,48)',
                         marker_line_width=1.5, opacity=0.6)
         fig.layout.height = 400
         
@@ -727,7 +878,7 @@ def server(input: Inputs, output: Outputs, session: Session):
             fig.update(layout_coloraxis_showscale=False)
             fig.update_layout(
                             margin=dict(l=20, r=20, t=20, b=20),
-                            paper_bgcolor="rgba(0, 255, 128, 0.1)",
+                            paper_bgcolor="rgba(0, 0, 0, 0.1)", # "rgba(0, 255, 128, 0.1)",
                             )
         else:
             # High-scale Map ----------------------------------------------------------------------------        
