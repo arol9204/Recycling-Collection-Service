@@ -36,18 +36,18 @@ App UI
 
 A web application that leverages AI-powered object detection and data analytics to make recycling easier and more efficient. This app identifies recyclable items like cans, glass bottles, and plastic bottles from images and allows users to submit collection requests via an interactive map. 🌟
 
-Key Features:
-✅ AI-powered object detection using a custom-trained YOLOv5 model
-✅ Interactive geospatial mapping with Pydeck and ipyleaflet
-✅ Dynamic dashboard visualizations with Plotly, showcasing trends and KPIs
-✅ Data storage and management with PostgreSQL
-✅ Reverse geocoding for extracting geolocation insights
+Key Features:  
+  ✅ AI-powered object detection using a custom-trained YOLOv5 model  
+  ✅ Interactive geospatial mapping with Pydeck and ipyleaflet  
+  ✅ Dynamic dashboard visualizations with Plotly, showcasing trends and KPIs  
+  ✅ Data storage and management with PostgreSQL  
+  ✅ Reverse geocoding for extracting geolocation insights  
 
 This project combines data analytics, computer vision, and geospatial analysis to create a seamless user experience. Here are some of the key data analytics concepts and tools applied:
+- Data filtering and aggregation for trend analysis  
+- Interactive dashboards to visualize key performance indicators (KPIs)  
+- Geospatial data visualization to map recycling requests and identify patterns  
 
-Data filtering and aggregation for trend analysis
-Interactive dashboards to visualize key performance indicators (KPIs)
-Geospatial data visualization to map recycling requests and identify patterns
+**Walkthrough Video to see the app in action:**
 
-Walkthrough Video to see the app in action: 
 [![IMAGE ALT TEXT HERE](https://github.com/arol9204/Recycling-Collection-Service/blob/main/Assets/UI/New%20UI/Request%20Submission%20tab.png)](https://youtu.be/Blo2Cjr9-ok)
