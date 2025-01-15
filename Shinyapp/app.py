@@ -35,10 +35,10 @@ import cv2
 # ----------------------------------#
 
 
-# # Loading custom YOLOv11 model -------------------------
-# from ultralytics import YOLO
-# model_path = 'D:/3. Projects/RecylingNet/Models/YOLO Models/YOLOv11s/200 epochs/best.pt'
-# model = YOLO(model_path)
+# Loading custom YOLOv11 model -------------------------
+from ultralytics import YOLO
+model_path = 'D:/3. Projects/RecylingNet/Models/YOLO Models/YOLOv11s/200 epochs/best.pt'
+YOLOv11_model = YOLO(model_path)
 
 
 
@@ -51,7 +51,7 @@ pathlib.PosixPath = pathlib.WindowsPath
 
 model_path = 'C:/Users/alero/Documents/GitHub/Recycling-Collection-Service/Shinyapp/Local/models/YOLOv5/best.pt'  # Update this with the path to your trained YOLOv5 model
 yolov5_dir = 'C:/Users/alero/Documents/GitHub/Recycling-Collection-Service/Shinyapp/yolov5'  # Update this with the path to your cloned YOLOv5 directory
-model = torch.hub.load(yolov5_dir, 'custom', path=model_path, source='local', force_reload=True)
+YOLOv5_model = torch.hub.load(yolov5_dir, 'custom', path=model_path, source='local', force_reload=True)
 
 
 
@@ -117,6 +117,8 @@ choices = {"WI": "WorldImagery",
            "NGM": "NatGeoWorldMap", 
            "HM": "Heatmap"}
 
+# Dictionary for mapping class number into class name
+category_dict = {0: 'can', 1: 'glass bottle', 2: 'plastic bottle'}
 
 # theme
 import shinyswatch
@@ -138,102 +140,95 @@ app_ui = ui.page_navbar(
     # Land tab App information -----------------------------
     ui.nav_panel("App Information",
                 ui.page_fluid(
-        ui.h1("Recycling Collection Service", class_="text-center", style="font-weight: bold; color: #2E8B57;"),
-        ui.output_image("UI_image1"),
-        ui.markdown(
-            """
-            Welcome to the Recycling Collection Service app! Our goal is to promote responsible recycling by using technology to make the recycling process easier and more efficient. This app leverages the power of computer vision and location-based data to help users identify recyclable items and contribute to the community's sustainability efforts.
-            """,
-            
-        ),
-        ui.h2("What is the App's Purpose?", style="color: #4CAF50; margin-top: 30px;"),
-        ui.markdown(
-            """
-            The Recycling Collection Service app aims to assist you in identifying recyclable objects such as cans, glass bottles, and plastic bottles. By using advanced image-based detection models, the app helps sort these items efficiently, improving waste management and enhancing recycling efforts. The goal is to help create a cleaner and more sustainable environment.
-            """,
-            
-        ),
-        ui.h2("Roadmap to Using the App", style="color: #4CAF50; margin-top: 30px;"),
-        ui.markdown(
-            """
-            Follow these simple steps to use the Recycling Collection Service app effectively:
-            """,
-            
-        ),
-        ui.tags.ol(
-            ui.tags.li(
-                ui.tags.div(
-                    ui.output_image("UI_image2"),
-                    style="text-align: center;"
-                
-                ),
-                ui.tags.b("Upload Your Picture"),
-                ": Start by clicking on the \"Request Submission\" tab and uploading an image of an item you would like to recycle. You can capture the image using your phone's camera or select one from your gallery.",
-                
-            ),
-            ui.tags.li(
-                ui.tags.div(
-                    ui.output_image("UI_image3"),
-                    style="text-align: center;"
-                ),
-                ui.tags.b("Detect the Item"),
-                ": After uploading the picture, click the \"Detect!\" button to let the app identify the item in the image. The app utilizes a custom YOLO model to detect cans, glass bottles, and plastic bottles, and it will show you the detection results with bounding boxes.",
-                
-            ),
-            ui.tags.li(
-                ui.tags.div(
-                    ui.output_image("UI_image4"),
-                    style="text-align: center;"
-                ),
-                ui.tags.b("Submit a Request"),
-                ": If you wish to add your detected items to the community map, click the \"Submit Request!\" button. This will add your contribution to the recycling request map, which helps the community understand areas with high recycling activity.",
-                
-            ),
-            ui.tags.li(
-                ui.tags.div(
-                    ui.output_image("UI_image5"),
-                    style="text-align: center;"
-                ),
-                ui.tags.b("View Map and Dashboard"),
-                ": Once your request is submitted, explore the \"Map\" tab to see all community contributions, and visit the \"Requests Dashboard\" to get insights into recycling activities.",
-                
-            )
-        ),
-        ui.h2("Features of the App", style="color: #4CAF50; margin-top: 30px;"),
-        ui.tags.ul(
-            ui.tags.li(
-                ui.tags.b("Real-time Detection"),
-                ": The app uses cutting-edge object detection technology to identify recyclable items accurately.",
-                
-            ),
-            ui.tags.li(
-                ui.tags.b("Interactive Map"),
-                ": On the \"Map\" tab, you can explore all the requests submitted by users in your area. The map displays the locations of recyclable items detected, allowing the community to visualize local recycling efforts.",
-                
-            ),
-            ui.tags.li(
-                ui.tags.b("Dashboard Insights"),
-                ": The \"Requests Dashboard\" provides valuable insights into the total recycling requests, the number of different items collected, and visualizations of recycling activities over time.",
-                
-            ),
-        ),
-        ui.h2("Get Involved!", style="color: #4CAF50; margin-top: 30px;"),
-        ui.markdown(
-            """
-            Your participation matters! Each submission helps improve local waste management and promotes responsible recycling. You can track your contributions, explore recycling hotspots, and get a clearer picture of the collective impact our community is making.
+                                ui.card(
+                                    ui.h1("Recycling Collection Service", class_="text-center", style="font-weight: bold; color: #2E8B57;"),
+                                    ui.output_image("UI_image1", ),
+                                    ui.markdown(
+                                                """
+                                                Welcome to the Recycling Collection Service app! Our goal is to promote responsible recycling by using technology to make the recycling process easier and more efficient. This app leverages the power of computer vision and location-based data to help users identify recyclable items and contribute to the community's sustainability efforts.
+                                                """,
+                                                ),
+                                    ),
+                                ui.card(
+                                    ui.h2("What is the App's Purpose?", style="color: #4CAF50; margin-top: 30px;"),
+                                    ui.markdown(
+                                            """
+                                            The Recycling Collection Service app aims to assist you in identifying recyclable objects such as cans, glass bottles, and plastic bottles. By using advanced image-based detection models, the app helps sort these items efficiently, improving waste management and enhancing recycling efforts. The goal is to help create a cleaner and more sustainable environment.
+                                            """,
+                                            ),
+                                    ),
+                                ui.card(
+                                    ui.h2("How to use the App?", style="color: #4CAF50; margin-top: 30px;"),
+                                    ui.markdown(
+                                                """
+                                                Follow these simple steps to use the Recycling Collection Service app effectively:
+                                                """,
+                                                ),
+                                    ui.layout_column_wrap(
+                                        ui.card(
+                                            ui.card_header("Upload Your Picture"),
+                                            ui.output_image("UI_image2", width='100%', height='50%'),
+                                            ui.p("Start by clicking on the \"Request Submission\" tab and uploading an image of an item you would like to recycle. You can capture the image using your phone's camera or select one from your gallery."),
 
-            Check out the [GitHub Repository](https://github.com/arol9204/Recycling-Collection-Service) for more information and source code. Let's make recycling smarter and our community greener, together!
-            """,
-            
-        ),
-        ui.h2("Questions or Feedback?", style="color: #4CAF50; margin-top: 30px;"),
-        ui.markdown(
-            """
-            If you have any questions or feedback, feel free to reach out! Together, we can make a significant impact on reducing waste and promoting sustainability.
-            """,
-            
-        )
+                                        ),
+                                        ui.card(
+                                            ui.card_header("Detect the Item"),
+                                            ui.output_image("UI_image3", width='100%', height='50%'),
+                                            ui.p("After uploading the picture, click the \"Detect!\" button to let the app identify the item in the image. The app utilizes a custom YOLO model to detect cans, glass bottles, and plastic bottles, and it will show you the detection results with bounding boxes."),
+
+                                        ),
+                                        ui.card(
+                                            ui.card_header("Submit a Request"),
+                                            ui.output_image("UI_image4", width='100%', height='50%'),
+                                            ui.p("If you wish to add your detected items to the community map, click the \"Submit Request!\" button. This will add your contribution to the recycling request map, which helps the community understand areas with high recycling activity."),
+
+                                        ),
+                                        ui.card(
+                                            ui.card_header("View Map and Dashboard"),
+                                            ui.output_image("UI_image5", width='100%', height='50%'),
+                                            ui.p("Once your request is submitted, explore the \"Map\" tab to see all community contributions, and visit the \"Requests Dashboard\" to get insights into recycling activities."),
+
+                                        ),
+
+                                    ),
+                                ),
+            ui.card(
+                ui.h2("Features of the App", style="color: #4CAF50; margin-top: 30px;"),
+                ui.tags.ul(
+                    ui.tags.li(
+                        ui.tags.b("Real-time Detection"),
+                        ": The app uses cutting-edge object detection technology to identify recyclable items accurately.",
+                        
+                    ),
+                    ui.tags.li(
+                        ui.tags.b("Interactive Map"),
+                        ": On the \"Map\" tab, you can explore all the requests submitted by users in your area. The map displays the locations of recyclable items detected, allowing the community to visualize local recycling efforts.",
+                        
+                    ),
+                    ui.tags.li(
+                        ui.tags.b("Dashboard Insights"),
+                        ": The \"Requests Dashboard\" provides valuable insights into the total recycling requests, the number of different items collected, and visualizations of recycling activities over time.",
+                        
+                    ),
                 ),
+        
+                ui.h2("Get Involved!", style="color: #4CAF50; margin-top: 30px;"),
+                ui.markdown(
+                            """
+                            Your participation matters! Each submission helps improve local waste management and promotes responsible recycling. You can track your contributions, explore recycling hotspots, and get a clearer picture of the collective impact our community is making.
+
+                            Check out the [GitHub Repository](https://github.com/arol9204/Recycling-Collection-Service) for more information and source code. Let's make recycling smarter and our community greener, together!
+                            """,
+                            ),
+                ui.h2("Questions or Feedback?", style="color: #4CAF50; margin-top: 30px;"),
+                ui.markdown(
+                            """
+                            If you have any questions or feedback, feel free to [reach out!](https://www.linkedin.com/in/ale-ro/) Together, we can make a significant impact on reducing waste and promoting sustainability.
+                            """,
+                            ),
+                ),
+        
+        ),
 
 
     ),
@@ -256,10 +251,35 @@ app_ui = ui.page_navbar(
                                         ui.card(ui.output_image("image", width='100%', height='50%',),),
                                         
                                         ui.layout_column_wrap(
-                                                ui.input_action_button("detect", "Detect!"),
-                                                ui.input_action_button("submit", "Submit Request!"),
+                                                ui.card(
+                                                        ui.input_select(  
+                                                                        "select_model",  
+                                                                        "Select a detection model below:",  
+                                                                        {"YOLOv11": "YOLOv11", "YOLOv5": "YOLOv5", "GPT": "GPT-4o"},  
+                                                                    ),
+                                                        ui.input_slider("confidence", "Detection confidence", 0, 100, 25), 
+                                                        ui.input_action_button("detect", "Detect!"),
+                                                        ),
+                                                ui.card("Request Type:",
+                                                        ui.layout_columns(
+                                                                            ui.tooltip(  
+                                                                                        ui.input_action_button("home", "H", width="5%"),
+                                                                                        "A home request",  
+                                                                                        id="btn_tooltip1",  
+                                                                                        placement="auto",  
+                                                                                       ), 
+                                                                            ui.input_switch("switch", "", value=True, width="100%"),
+                                                                            ui.tooltip(  
+                                                                                        ui.input_action_button("street", "S", width="5%"),
+                                                                                        "A street request",  
+                                                                                        id="btn_tooltip2",  
+                                                                                        placement="auto",
+                                                                                ), 
+                                                                    ),
+                                                                    ui.input_action_button("submit", "Submit Request!"),                  
+                                                ),
                                             ),
-                                            open='open',
+                                            bg="#f8f8f8", open='open',
                                      ),
                        #ui.panel_main(
                           #{"style": "background-color: rgba(0, 255, 128, 0.1)"},
@@ -319,7 +339,7 @@ app_ui = ui.page_navbar(
                                             choices=list(basemaps.keys())
                                             ),
                             #ui.input_radio_buttons("type_map", "Type of Map", choices),
-                            output_widget("map", height="700px"),
+                            output_widget("map", height="1000px"),
                     ),
                     ui.row(
                             ui.output_table("requests", placeholder=True),
@@ -347,19 +367,13 @@ app_ui = ui.page_navbar(
                                                             },
                                                             selected=['c', 'gb', 'pb'],
                                                         ),
-                                ui.input_radio_buttons(  
-                                                        "radio_fig1",  
-                                                        "Fig 1 Plot Type:",  
-                                                        {"1": "Bar plot", "2": "Line plot"},  
-                                                    ),
-                                ui.input_radio_buttons(  
-                                                        "radio_fig2",  
-                                                        "Fig 2 Map Type",  
-                                                        {"1": "Heat Map", "2": "High-scale spatial Map"},  
-                                                    ),
+                                
+                                
                                 #ui.input_action_button("action_button", "Apply"),  
                             ),
-                            ui.card(
+                            
+                                ui.layout_column_wrap(
+                                    ui.card(
                                     ui.value_box(
                                                     "Total Requests",
                                                     ui.output_text("total_requests"),
@@ -368,45 +382,64 @@ app_ui = ui.page_navbar(
                                                     height="100px",
                                                     ),
 
-                                    ui.layout_column_wrap(
+                                    ui.layout_columns(
                                                             ui.value_box(
                                                                         "Total Cans",
                                                                         ui.output_text("total_cans"),
                                                                         theme="bg-gradient-red-yellow",
                                                                         showcase=icon_svg("jar"), # trash-can-arrow-up, trash, dumpster
-                                                                        height="100px",
+                                                                        #height="120px",
+                                                                        # width="10px", 
                                                                     ),
                                                             ui.value_box(
                                                                         "Total Glass Bottles",
                                                                         ui.output_text("total_glassbottles"),
                                                                         theme="bg-gradient-yellow-blue",
                                                                         showcase=icon_svg("wine-bottle"),
-                                                                        height="100px",
+                                                                        #height="120px",
+                                                                        # width="10px", 
                                                                     ),
                                                             ui.value_box(
                                                                         "Totla Plastic Bottles",
                                                                         ui.output_text("total_plasticbottles"),
                                                                         theme="bg-gradient-cyan-blue",
                                                                         showcase=icon_svg("bottle-water"),
-                                                                        height="100px",
+                                                                        #height="120px",
+                                                                        # width="10px", 
                                                                     ),
                                                             ),
+                                    ),
+                                    ui.card("Density Map",
+                                    ui.input_radio_buttons(  
+                                                        "radio_fig2",  
+                                                        "",  
+                                                        {"1": "Heat Map", "2": "High-scale spatial Map"},
+                                                        inline=True,
+                                                    ),
+                                    output_widget("chart2"),
+                                    ),
                                 ),
-                            ui.card(
-                                ui.layout_column_wrap(  "Fig 1: Recycling Requests by Date",
-                                                        "Fig 2: Density Map",
-                                                     ),
-                                ui.layout_column_wrap(
-                                                        output_widget("requests_by_date"),
-                                                        output_widget("chart2"),
-                                                     )
-                            ),
+                            ui.layout_column_wrap(
+                                                    ui.card("Recycling Requests by Date",
+                                                            ui.input_radio_buttons(  
+                                                                "radio_fig1",  
+                                                                "",  
+                                                                {"1": "Bar plot", "2": "Line plot"},
+                                                                inline=True, 
+                                                            ),
+                                                            output_widget("requests_by_date"),             
+                                                           ),
+                                                    ui.card("Recycling Requests by Postcode",
+                                                            output_widget("zipcode_chart"),
+                                                        )
+                                                ),
                )
            
            ),
     ),
+     ui.nav_panel("About",),
     
-    title="Recycling Service Request",
+    title="RECYCLINGNET",
 )
 
 
@@ -418,40 +451,28 @@ def server(input: Inputs, output: Outputs, session: Session):
     # Landing page images
     @render.image  
     def UI_image1():
-        img = {"src": 'C:/Users/alero/Documents/GitHub/Recycling-Collection-Service/Assets/AI generated images/DALL.png', "height":'400px', "width":'100%'}  
+        img = {"src": 'C:/Users/alero/Documents/GitHub/Recycling-Collection-Service/Assets/AI generated images/DALL.png', "height":'400px', "width":'60%', "align":'center'}  
         return img 
     
     @render.image  
     def UI_image2():
-        img = {"src": 'C:/Users/alero/Documents/GitHub/Recycling-Collection-Service/Assets/AI generated images/DALL·E step2.webp',"height":'200px', "width":'25%'}  
+        img = {"src": 'C:/Users/alero/Documents/GitHub/Recycling-Collection-Service/Assets/UI/Steps/1_upload_photo - Copy.png',"height":'100%', "width":'100%'}  
         return img 
 
     @render.image  
     def UI_image3():
-            img = {"src": 'C:/Users/alero/Documents/GitHub/Recycling-Collection-Service/Assets/AI generated images/DALL·E step3.webp',"height":'200px', "width":'25%'}  
+            img = {"src": 'C:/Users/alero/Documents/GitHub/Recycling-Collection-Service/Assets/UI/Steps/2_detect - Copy.png',"height":'100%', "width":'100%'}  
             return img 
     
     @render.image  
     def UI_image4():
-        img = {"src": 'C:/Users/alero/Documents/GitHub/Recycling-Collection-Service/Assets/AI generated images/DALL·E step4.webp',"height":'200px', "width":'25%'}  
+        img = {"src": 'C:/Users/alero/Documents/GitHub/Recycling-Collection-Service/Assets/UI/Steps/3_submit.png',"height":'100%', "width":'100%'}  
         return img 
 
     @render.image  
     def UI_image5():
-        img = {"src": 'C:/Users/alero/Documents/GitHub/Recycling-Collection-Service/Assets/AI generated images/DALL·E step4.webp',"height":'200px', "width":'25%'}  
+        img = {"src": 'C:/Users/alero/Documents/GitHub/Recycling-Collection-Service/Assets/UI/Steps/4_dashboard.png',"height":'100%', "width":'100%'}  
         return img 
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -485,20 +506,49 @@ def server(input: Inputs, output: Outputs, session: Session):
         path = file_infos[0]['datapath']
         input.detect()
         with reactive.isolate():
-            # Using my YOLOv5 model ----------
-            predictions = model(path)
-            print(predictions)
+            if (input.select_model() == "YOLOv5"):
+                # Using my YOLOv5 model ----------
+                predictions = YOLOv5_model(path)
+                #print(predictions)
+            elif(input.select_model() == 'YOLOv11'):
+                predictions = YOLOv11_model(path, conf=input.confidence()/100)
+            print(input.confidence())
+            print(input.select_model())
+            request_type = 'Street' if input.switch() == True else 'Home'
+            print(request_type)
             return predictions
         
     # Here we put into a list all the recyling object classes in the image
     @reactive.Calc
+    def results_df():
+        input.detect()
+        with reactive.isolate():
+            if (input.select_model() == "YOLOv5"):
+                # With my YOLOv5 model ----------
+                results = predictions().pandas().xyxy[0]
+                #print(results)
+            elif (input.select_model() == 'YOLOv11'):
+                xyxy = predictions()[0].boxes.xyxy
+                cls = predictions()[0].boxes.cls
+                conf = predictions()[0].boxes.conf
+                # Convert tensors to numpy arrays
+                cls_np = cls.numpy().reshape(-1, 1)  # Reshape to column
+                conf_np = conf.numpy().reshape(-1, 1)  # Reshape to column
+                xyxy_np = xyxy.numpy()
+                # Combine numpy arrays using np.concatenate along axis 1 (columns)
+                combined = np.concatenate((xyxy_np, conf_np, cls_np), axis=1)
+                # Create a pandas DataFrame
+                results = pd.DataFrame(combined, columns=['xmin', 'ymin', 'xmax', 'ymax','confidence', 'class', ])
+                # Create a new 'name' column by mapping 'cls' values to category names
+                results['name'] = results['class'].map(category_dict)
+                #print(results) Check the data type of the class column, it should be interger
+            return results # l_classes
+
+    @reactive.Calc
     def classes():
         input.detect()
         with reactive.isolate():
-            # With my YOLOv5 model ----------
-            results = predictions().pandas().xyxy[0]
-            l_classes = results['name'].tolist()
-            print(results)
+            l_classes = results_df()[results_df()['confidence'] >= input.confidence()/100]['name'].tolist()
             return l_classes
 
 
@@ -514,38 +564,41 @@ def server(input: Inputs, output: Outputs, session: Session):
 
         # Using YOLOv5 output results ---------------
         # Iterate over the results DataFrame
-        results_df = predictions().pandas().xyxy[0]
-        for _, pred in results_df.iterrows():
-            x0, y0, x1, y1 = int(pred['xmin']), int(pred['ymin']), int(pred['xmax']), int(pred['ymax'])
-            label = pred['name']
-            confidence = pred['confidence']
+        
+        #results_df = predictions().pandas().xyxy[0]
+        for _, pred in results_df().iterrows():
+            # Filtering by confidence level
+            if (pred['confidence'] >= input.confidence()/100):
+                x0, y0, x1, y1 = int(pred['xmin']), int(pred['ymin']), int(pred['xmax']), int(pred['ymax'])
+                label = pred['name']
+                confidence = pred['confidence']
 
-            # Set box color based on the class label
-            if label == 'can':
-                box_color = (255, 0, 0)
-            elif label == 'glass bottle':
-                box_color = (255, 255, 0)
-            elif label == 'plastic bottle':
-                box_color = (0, 255, 255)
-            else:
-                box_color = (255, 255, 255)  # default to white if no class match
+                # Set box color based on the class label
+                if label == 'can':
+                    box_color = (255, 0, 0)
+                elif label == 'glass bottle':
+                    box_color = (255, 255, 0)
+                elif label == 'plastic bottle':
+                    box_color = (0, 255, 255)
+                else:
+                    box_color = (255, 255, 255)  # default to white if no class match
 
-            # Draw the bounding box
-            cv2.rectangle(image, (x0, y0), (x1, y1), color=box_color, thickness=5)
+                # Draw the bounding box
+                cv2.rectangle(image, (x0, y0), (x1, y1), color=box_color, thickness=5)
 
-            # Create the label with confidence score
-            label_with_confidence = f"{label}: {confidence:.0%}"
+                # Create the label with confidence score
+                label_with_confidence = f"{label}: {confidence:.0%}"
 
-            # Put the class label on the bounding box
-            cv2.putText(
-                image,
-                label_with_confidence,
-                (x0, y0 - 10),
-                fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                fontScale=5,
-                color=box_color,
-                thickness=10
-            )
+                # Put the class label on the bounding box
+                cv2.putText(
+                    image,
+                    label_with_confidence,
+                    (x0, y0 - 10),
+                    fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                    fontScale=5,
+                    color=box_color,
+                    thickness=10
+                )
         # Convert image back to RGB for displaying with matplotlib
         #image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  
         return image
@@ -609,7 +662,7 @@ def server(input: Inputs, output: Outputs, session: Session):
     
     # Data Frame requests ---------------------------------------------------------
 
-    # Creating a reactive data frame that will be used to show the table "requests" where we are saving all the information pulled from the image
+    # Creating a reactive data frame that will be used to work with the table "requests" where we are saving all the information pulled from the image
     df = reactive.Value(pd.DataFrame({'request_ID': [],
                                    'cans': [],
                                    'glass_bottles': [],
@@ -623,6 +676,9 @@ def server(input: Inputs, output: Outputs, session: Session):
                                    'path': [],
                                    'date_image': [],
                                    'postcode': [],
+                                   'model': [], 
+                                   'confidence_threshold': [],
+                                   'request_type': [],
                                    }))
     
     # PostgreSQL connexion
@@ -637,7 +693,7 @@ def server(input: Inputs, output: Outputs, session: Session):
     # Selecting all the information from the request table
     cursor.execute("SELECT * FROM requests")
     record = cursor.fetchall()
-    df.set(pd.DataFrame(record, columns=["request_id", "n_cans", "n_glassbottles", "n_plasticbottles", "latitude", "longitude", "city", "province", "country", "image_path", "date_image", "postcode"]))
+    df.set(pd.DataFrame(record, columns=["request_id", "n_cans", "n_glassbottles", "n_plasticbottles", "latitude", "longitude", "city", "province", "country", "image_path", "date_image", "postcode", "model", "confidence_threshold", "request_type"]))
     cursor.close()
     connection.close()
 
@@ -645,7 +701,16 @@ def server(input: Inputs, output: Outputs, session: Session):
     @reactive.effect
     @reactive.event(input.submit)
     def add_value_to_list():
-        if get_gps_info(image_path())[0] != None and get_gps_info(image_path())[1] != None and len(classes()) > 0:
+        # Through an error in case that there is not information about the localization of the image (no lat, no long)    
+        if get_gps_info(image_path())[0] == None and get_gps_info(image_path())[1] == None:
+            ui.notification_show("Thanks for your image! Unfortunately, we need localization information to process the collection request. If you can provide that, we’d love to help!", type='warning', duration=5,)
+            # Sorry but as the image does not contain the localization information it can not be submitted as a request for collection
+        elif len(classes()) == 0:
+            ui.notification_show("Unfortunately, the model did not detect any of the target classes: cans, glass bottles, or plastic bottles.", type='warning', duration=5,)
+
+        else: 
+            # get_gps_info(image_path())[0] != None and get_gps_info(image_path())[1] != None and len(classes()) > 0:
+
             # Perform reverse geocoding to get the name of city, province and country of the lat and long point
             location = geolocator.reverse(f"{get_gps_info(image_path())[0]}, {get_gps_info(image_path())[1]}", exactly_one=True)
             
@@ -677,10 +742,15 @@ def server(input: Inputs, output: Outputs, session: Session):
             # df.set(pd.DataFrame(record, columns=["request_id", "n_cans", "n_glassbottles", "n_plasticbottles", "latitude", "longitude", "city", "province", "country", "image_path", "date_image", "postcode"]))
             request_id = df().shape[0] + 1
 
+            # Detection setting
+            request_type = 'Street' if input.switch() == True else 'Home'
+            confidence_threshold = input.confidence()
+            model = input.select_model()
+
 
             # 2. Inserting values by predefining the values in a variable
             # We used a parameterized query to use Python variables as parameter values at execution time. Using a parameterized query, we can pass python variables as a query parameter using placeholders (%s).
-            insert_query = """ INSERT INTO requests (request_id, n_cans, n_glassbottles, n_plasticbottles, latitude, longitude, city, province, country, image_path, date_image, postcode) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) """
+            insert_query = """ INSERT INTO requests (request_id, n_cans, n_glassbottles, n_plasticbottles, latitude, longitude, city, province, country, image_path, date_image, postcode, model, confidence_threshold, request_type) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) """
             record_to_insert = (request_id, 
                                 np.count_nonzero(np.array(classes()) == 'can'),
                                 np.count_nonzero(np.array(classes()) == 'glass bottle'), 
@@ -693,6 +763,9 @@ def server(input: Inputs, output: Outputs, session: Session):
                                 image_path(),
                                 get_gps_info(image_path())[2],
                                 postcode,
+                                request_type,
+                                confidence_threshold,
+                                model,
                                 )
             cursor.execute(insert_query, record_to_insert)
             connection.commit()
@@ -700,22 +773,16 @@ def server(input: Inputs, output: Outputs, session: Session):
             # Selecting all the information from the request table
             cursor.execute("SELECT * FROM requests")
             record = cursor.fetchall()
-            df.set(pd.DataFrame(record, columns=["request_id", "n_cans", "n_glassbottles", "n_plasticbottles", "latitude", "longitude", "city", "province", "country", "image_path", "date_image", "postcode"]))
+            df.set(pd.DataFrame(record, columns=["request_id", "n_cans", "n_glassbottles", "n_plasticbottles", "latitude", "longitude", "city", "province", "country", "image_path", "date_image", "postcode", "model", "confidence_threshold", "request_type"]))
 
             #print(record_to_insert) # here we can check if we are getting the information
             #print("1 Record inserted succesfully")
             cursor.close()
             connection.close()
+            ui.notification_show("Thank you so much for your submission! We really appreciate it.", type="message", duration=1)
         
-        # Through an error in case that there is not information about the localization of the image (no lat, no long)    
-        elif get_gps_info(image_path())[0] == None and get_gps_info(image_path())[1] == None:
-            ui.notification_show("Sorry but as the image does not contain the localization information it can not be submitted as a request for collection", type='message')
-            #await sleep(1)
-            ui.notification_show("Warning message", type="warning")
-        elif len(classes()) == 0:
-            ui.notification_show("Sorry but looks like the model did not detected any of the target classes (cans, glass bottle, plastic bottle)")
-            #await sleep(1)
-            ui.notification_show("Warning message", type="warning")
+        
+            
         
     # Map Tab ---------------------------------------------------------------------
 
@@ -731,7 +798,7 @@ def server(input: Inputs, output: Outputs, session: Session):
     def mapping():
         basemap = basemaps[input.basemap()]
         map = L.Map(basemap = basemap, center=(0, 0), zoom = 2, scroll_wheel_zoom=True)
-        map.layout.height = "700px"
+        map.layout.height = "100%"
         # Beer stores markers
         beer_store_mark1 = L.Marker(location=[42.31263551985872, -83.03326561020128], icon=leaf_icon, draggable=False)
         beer_store_mark2 = L.Marker(location=[42.30366417918876, -83.05465990194318], icon=leaf_icon, draggable=False)
@@ -824,6 +891,23 @@ def server(input: Inputs, output: Outputs, session: Session):
         # Extract the date component
         df_filtered['date_image'] = df_filtered['date_image'].dt.strftime('%Y-%m-%d')
         return df_filtered
+
+    @reactive.Calc
+    @render_widget
+    def zipcode_chart():
+        df_grouped = dashboard_df().groupby(['country', 'province', 'city', 'postcode']).size().reset_index(name='num_requests').sort_values(by='num_requests', ascending=True)
+        fig = px.bar(df_grouped.tail(10), x='num_requests', y='postcode', orientation='h')
+        # Customize the layout (optional)
+        fig.update_layout(
+                xaxis_title='Number of Requests',
+                yaxis_title='Postcode',
+                #xaxis_tickangle=-45,  # Rotate x-axis labels for better readability
+                margin=dict(l=20, r=20, t=40, b=10),
+                plot_bgcolor='rgba(0, 0, 0, 0)',
+                paper_bgcolor="rgba(0, 0, 0, 0.1)", # "rgba(0, 255, 128, 0.1)",
+            )
+        return fig
+
     
     @reactive.Calc
     @render_widget
