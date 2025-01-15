@@ -26,11 +26,13 @@ App UI
 
 - Map:
   This tab shows all the requests collected on a map. I have been collecting images in Windsor for around four months, and so far I have taken more than 200 pictures with one or more of the targeted objects.
-<img width="1473" alt="2  Map tab" src="https://github.com/arol9204/Recicling-Collection-Service/assets/63767771/8568a89a-9612-4d51-ab6d-2336ce5f9488">
+<img width="1473" alt="2  Map tab" src="https://github.com/arol9204/Recycling-Collection-Service/blob/main/Assets/UI/New%20UI/3.%20Map%20tab.png">
 
 
 - Dashboard:
   This tab shows a dashboard about the key metrics for this project. It has the total number of requests, the total cans, glass bottles, and plastic bottles detected among all the requests. In addition, there is a bar chart with the number of requests per day since I started collecting images. Lastly, there are three heatmaps that visualize the magnitude of the presence of each of the classes in Windsor areas.
-<img width="1457" alt="3  Dashboard tab" src="https://github.com/arol9204/Recicling-Collection-Service/assets/63767771/9becac8c-ba15-4bc8-8727-4ab030cd0c3d">
+<img width="1457" alt="3  Dashboard tab" src="https://github.com/arol9204/Recycling-Collection-Service/blob/main/Assets/UI/New%20UI/4.%20Request%20Dashboard.png">
+<img width="1457" alt="3  Dashboard tab density map" src="https://github.com/arol9204/Recycling-Collection-Service/blob/main/Assets/UI/New%20UI/4.1%20Density%20Map.png">
+
 
 
