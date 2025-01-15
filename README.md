@@ -21,7 +21,7 @@ App UI
 
 - Request tab:
   In this tab, people can upload a picture taken with some of the recycling objects that the model was trained to detect (tin cans, glass bottles, plastic bottles). The interface will show then the number of elements per class together with the latitude and longitude where the image was taken.
-<img width="1483" alt="1  Request tab" src="https://github.com/arol9204/Recicling-Collection-Service/assets/63767771/97373683-bef9-4156-bd1c-907bef48896f">
+<img width="1483" alt="1  Request tab" src="https://github.com/arol9204/Recycling-Collection-Service/blob/main/Assets/UI/New%20UI/2.%20Request%20Submission.png">
 
 
 - Map:
