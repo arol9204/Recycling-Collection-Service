@@ -50,4 +50,4 @@ This project combines data analytics, computer vision, and geospatial analysis t
 
 **Walkthrough Video to see the app in action:**
 
-[![IMAGE ALT TEXT HERE](https://github.com/arol9204/Recycling-Collection-Service/blob/main/Assets/UI/New%20UI/Request%20Submission%20tab.png)](https://youtu.be/Blo2Cjr9-ok)
+[![IMAGE ALT TEXT HERE](https://github.com/arol9204/Recycling-Collection-Service/blob/main/Assets/UI/New%20UI/Request%20Submission%20tab%20-%20Copy.png)](https://youtu.be/Blo2Cjr9-ok)
